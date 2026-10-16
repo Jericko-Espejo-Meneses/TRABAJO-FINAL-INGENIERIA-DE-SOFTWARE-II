@@ -31,7 +31,7 @@ export default function RegisterPage() {
       <section className="auth__panel">
         <h2>Crear cuenta</h2>
         <form onSubmit={submit} noValidate>
-          <Field label="Nombre completo" icon="👤" autoComplete="name" {...bind('name')} />
+          <Field label="Nombre completo" autoComplete="name" {...bind('name')} />
           <Field label="Correo" type="email" autoComplete="email" {...bind('email')} />
           <Field label="Contraseña" type="password" autoComplete="new-password" {...bind('password')} />
           <Field label="Confirmar contraseña" type="password" autoComplete="new-password" {...bind('confirm')} />
