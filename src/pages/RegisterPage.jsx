@@ -32,10 +32,10 @@ export default function RegisterPage() {
         <h2>Crear cuenta</h2>
         <form onSubmit={submit} noValidate>
           <Field label="Nombre completo" icon="👤" autoComplete="name" {...bind('name')} />
-          <Field label="Correo" icon="✉️" type="email" autoComplete="email" {...bind('email')} />
-          <Field label="Contraseña" icon="🔒" type="password" autoComplete="new-password" {...bind('password')} />
-          <Field label="Confirmar contraseña" icon="🔒" type="password" autoComplete="new-password" {...bind('confirm')} />
-          <Field label="Dirección (opcional)" icon="📍" autoComplete="street-address" {...bind('address')} />
+          <Field label="Correo" type="email" autoComplete="email" {...bind('email')} />
+          <Field label="Contraseña" type="password" autoComplete="new-password" {...bind('password')} />
+          <Field label="Confirmar contraseña" type="password" autoComplete="new-password" {...bind('confirm')} />
+          <Field label="Dirección (opcional)" autoComplete="street-address" {...bind('address')} />
           {serverError && <p className="alert">{serverError}</p>}
           <Button type="submit" block disabled={busy}>{busy ? 'Creando…' : 'Crear cuenta'}</Button>
         </form>

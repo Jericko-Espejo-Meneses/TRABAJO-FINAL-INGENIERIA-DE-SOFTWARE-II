@@ -19,6 +19,7 @@ Cuenta demo: `demo@healthyexpress.com` / `Demo1234`
 | Buscar | `GET /restaurantes?q&tags&tipoComida&distanciaMax&lat&lng` |
 | Detalle + menú | `GET /restaurantes/{id}` → incluye `productos[]` |
 | Recomendaciones | `GET /recomendaciones`, `GET/PUT /usuarios/me/preferencias` |
+| Editar perfil | `PUT /usuarios/me` con `{ nombre, direccion, biografia }` → usuario actualizado |
 | Pedido | `POST /pedidos` (incluye `montoDonacion`), `GET /pedidos` |
 | Donaciones | `GET /donaciones/resumen` → `{ total, cantidad }` |
 

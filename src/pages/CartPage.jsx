@@ -33,7 +33,7 @@ export default function CartPage() {
       </ul>
       <div className="summary">
         <div className="row row--between"><span>Subtotal</span><span>{formatMoney(summary.subtotal)}</span></div>
-        <div className="row row--between muted"><span>💚 Donación WFP ({summary.donationPercentage}%) incluida</span><span>{formatMoney(summary.donationAmount)}</span></div>
+        <div className="row row--between muted"><span> Donación WFP ({summary.donationPercentage}%) incluida</span><span>{formatMoney(summary.donationAmount)}</span></div>
         <div className="row row--between total"><span>Total</span><span>{formatMoney(summary.total)}</span></div>
       </div>
       <Button block onClick={() => navigate('/checkout')}>Proceder al pago</Button>

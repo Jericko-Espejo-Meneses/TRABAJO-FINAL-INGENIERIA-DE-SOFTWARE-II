@@ -8,11 +8,13 @@ import { HttpRestaurantService } from '../services/http/HttpRestaurantService';
 import { HttpRecommendationService } from '../services/http/HttpRecommendationService';
 import { HttpOrderService } from '../services/http/HttpOrderService';
 import { HttpDonationService } from '../services/http/HttpDonationService';
+import { HttpProfileService } from '../services/http/HttpProfileService';
 import { MockAuthService } from '../services/mock/MockAuthService';
 import { MockRestaurantService } from '../services/mock/MockRestaurantService';
 import { MockRecommendationService } from '../services/mock/MockRecommendationService';
 import { MockOrderService } from '../services/mock/MockOrderService';
 import { MockDonationService } from '../services/mock/MockDonationService';
+import { MockProfileService } from '../services/mock/MockProfileService';
 
 // PATRÓN FACTORY: único lugar donde se decide qué implementación se usa.
 // Cambiar VITE_USE_MOCK=false conecta toda la app al backend sin tocar componentes.
@@ -28,6 +30,7 @@ export function createServices(cfg = config) {
       recommendations: new MockRecommendationService(tokenStorage),
       orders,
       donations: new MockDonationService(tokenStorage),
+      profile: new MockProfileService(tokenStorage),
     };
   } else {
     const http = new AuthHttpClient(
@@ -41,6 +44,7 @@ export function createServices(cfg = config) {
       recommendations: new HttpRecommendationService(http),
       orders: new HttpOrderService(http),
       donations: new HttpDonationService(http),
+      profile: new HttpProfileService(http),
     };
   }
 

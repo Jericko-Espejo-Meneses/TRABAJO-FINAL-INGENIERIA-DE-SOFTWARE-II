@@ -14,7 +14,6 @@ export default function SplashPage() {
 
   return (
     <div className="splash">
-      <div className="splash__logo">💚🍽️</div>
       <h1>HealthExpress</h1>
       <p>Comida saludable con impacto social</p>
       <div className="spinner" aria-label="Cargando" />

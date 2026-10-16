@@ -29,3 +29,7 @@ export class OrderService {
 export class DonationService {
   getSummary() { return notImplemented('getSummary'); }                              // -> { total, count }
 }
+
+export class ProfileService {
+  update(/* { name, address, bio } */) { return notImplemented('update'); }          // -> user
+}

@@ -3,7 +3,8 @@ import { calculateDonation } from '../domain/donation';
 import { PaymentStrategyFactory } from '../payments/PaymentStrategyFactory';
 import { OrderBuilder } from './OrderBuilder';
 
-
+// PATRÓN FACADE: la pantalla de pago llama a UN método y la fachada coordina
+// estrategia de pago + validación + builder + servicio de pedidos.
 export class CheckoutFacade {
   constructor({ orders, donationPercentage, strategies = PaymentStrategyFactory }) {
     this.orders = orders;

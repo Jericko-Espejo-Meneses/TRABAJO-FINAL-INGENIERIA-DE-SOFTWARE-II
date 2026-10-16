@@ -15,3 +15,12 @@ export function validateRegister({ name, email, password, confirm }) {
   if (confirm !== password) e.confirm = 'Las contraseñas no coinciden';
   return e;
 }
+
+export const BIO_MAX = 250;
+
+export function validateProfile({ name, bio }) {
+  const e = {};
+  if (!name?.trim()) e.name = 'El nombre no puede estar vacío';
+  if ((bio ?? '').length > BIO_MAX) e.bio = `Máximo ${BIO_MAX} caracteres`;
+  return e;
+}

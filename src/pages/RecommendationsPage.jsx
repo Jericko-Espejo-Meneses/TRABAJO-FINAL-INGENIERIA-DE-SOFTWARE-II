@@ -27,8 +27,7 @@ export default function RecommendationsPage() {
 
   return (
     <>
-      <div className="banner banner--static">✨ Según tus hábitos</div>
-      <h2>Tus preferencias nutricionales</h2>
+      <h2>Tus preferencias nutricionales, según tus hábitos</h2>
       <div className="chips">{NUTRITION_TAGS.map((t) => <Chip key={t.id} active={prefs.includes(t.id)} onClick={() => toggle(t.id)}>{t.label}</Chip>)}</div>
       <Button onClick={save} disabled={saving}>{saving ? 'Guardando…' : 'Guardar y actualizar'}</Button>
       <h2>Platos recomendados</h2>

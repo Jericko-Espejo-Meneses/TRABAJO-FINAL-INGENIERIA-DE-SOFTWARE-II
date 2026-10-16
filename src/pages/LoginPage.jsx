@@ -5,11 +5,6 @@ import Field from '../components/ui/Field';
 import { useAuth } from '../context/AuthContext';
 import { validateLogin } from '../utils/validators';
 
-const PROVIDERS = [
-  { id: 'google', label: 'Google', icon: 'G' },
-  { id: 'facebook', label: 'Facebook', icon: 'f' },
-  { id: 'apple', label: 'Apple', icon: '' },
-];
 
 export default function LoginPage() {
   const { login, loginWithProvider } = useAuth();
@@ -35,21 +30,16 @@ export default function LoginPage() {
 
   return (
     <div className="auth">
-      <section className="auth__hero"><div className="splash__logo">💚🍽️</div><h1>HealthExpress</h1><p>Comida saludable con impacto social</p></section>
+      <section className="auth__hero"><div className="splash__logo"></div><h1>HealthExpress</h1><p>Comida saludable con impacto social</p></section>
       <section className="auth__panel">
         <form onSubmit={submit} noValidate>
-          <Field label="Correo" icon="✉️" type="email" autoComplete="email" value={values.email} error={errors.email} onChange={(e) => setValues({ ...values, email: e.target.value })} />
-          <Field label="Contraseña" icon="🔒" type="password" autoComplete="current-password" value={values.password} error={errors.password} onChange={(e) => setValues({ ...values, password: e.target.value })} />
+          <Field label="Correo" type="email" autoComplete="email" value={values.email} error={errors.email} onChange={(e) => setValues({ ...values, email: e.target.value })} />
+          <Field label="Contraseña" type="password" autoComplete="current-password" value={values.password} error={errors.password} onChange={(e) => setValues({ ...values, password: e.target.value })} />
           {serverError && <p className="alert">{serverError}</p>}
           <Button type="submit" block disabled={busy}>{busy ? 'Ingresando…' : 'Iniciar sesión'}</Button>
         </form>
         <Link to="/register" className="btn btn--secondary btn--block">Crear cuenta</Link>
-        <div className="divider"><span>o continuar con...</span></div>
-        <div className="row social">
-          {PROVIDERS.map((p) => <Button key={p.id} variant="secondary" disabled={busy} onClick={() => run(() => loginWithProvider(p.id))}><b>{p.icon}</b> {p.label}</Button>)}
-        </div>
         <p className="muted small center">Al continuar, aceptas los Términos y Condiciones</p>
-        <p className="muted small center">Demo: demo@healthyexpress.com / Demo1234</p>
       </section>
     </div>
   );

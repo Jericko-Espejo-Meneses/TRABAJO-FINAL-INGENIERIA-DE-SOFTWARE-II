@@ -7,6 +7,7 @@ export const toUser = (d) => ({
   email: d.correo ?? d.email,
   address: d.direccion ?? d.address ?? '',
   phone: d.telefono ?? d.phone ?? '',
+  bio: d.biografia ?? d.bio ?? '',
   preferences: d.preferencias ?? d.preferences ?? [],
 });
 

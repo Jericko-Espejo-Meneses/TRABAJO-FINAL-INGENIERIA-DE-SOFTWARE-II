@@ -33,6 +33,7 @@ export function AuthProvider({ children }) {
       register: async (data) => startSession(await auth.register(data)),
       loginWithProvider: async (provider) => startSession(await auth.loginWithProvider(provider)),
       logout: () => { tokenStorage.clear(); setUser(null); },
+      updateUser: setUser,
     };
   }, [user, loading, auth, tokenStorage]);
 

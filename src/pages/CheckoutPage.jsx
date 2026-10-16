@@ -41,7 +41,7 @@ export default function CheckoutPage() {
   return (
     <>
       <h2>Método de pago</h2>
-      <Field label="Dirección de entrega" icon="📍" value={address} onChange={(e) => setAddress(e.target.value)} />
+      <Field label="Dirección de entrega"  value={address} onChange={(e) => setAddress(e.target.value)} />
       <div className="methods">
         {methods.map((m) => (
           <button key={m.id} type="button" className={`method ${m.id === methodId ? 'method--active' : ''}`} onClick={() => { setMethodId(m.id); setValues({}); setErrors({}); }}>
@@ -55,7 +55,7 @@ export default function CheckoutPage() {
       ))}
       <div className="summary">
         <div className="row row--between"><span>Total a pagar</span><strong>{formatMoney(summary.total)}</strong></div>
-        <div className="donation">💚 Donación al World Food Programme: {formatMoney(summary.donationAmount)} ({summary.donationPercentage}% de tu pago) — se descuenta automáticamente.</div>
+        <div className="donation">Donación al World Food Programme: {formatMoney(summary.donationAmount)} ({summary.donationPercentage}% de tu pago) — se descuenta automáticamente.</div>
       </div>
       {serverError && <p className="alert">{serverError}</p>}
       <Button block onClick={pay} disabled={busy}>{busy ? 'Procesando pago…' : 'Confirmar pago'}</Button>

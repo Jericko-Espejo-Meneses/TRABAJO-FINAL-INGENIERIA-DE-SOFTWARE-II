@@ -30,7 +30,7 @@ export default function RestaurantPage() {
             <div className="grid">{data.menu.map((d) => <DishCard key={d.id} dish={d} onAdd={(dish) => addToCart(dish, data.restaurant)} />)}</div>
           )}
           {tab === 'Información' && (
-            <div className="card card__body"><p>📍 {data.restaurant.address}</p><p>🍴 Tipo de comida: {data.restaurant.foodType}</p>{data.restaurant.distanceKm != null && <p>🚴 A {data.restaurant.distanceKm} km de ti</p>}</div>
+            <div className="card card__body"><p><b>Dirección: </b> {data.restaurant.address}</p><p> <b>Tipo de Comida: </b>{data.restaurant.foodType}</p>{data.restaurant.distanceKm != null && <p><b>Se encuentra a: </b> {data.restaurant.distanceKm} km de ti</p>}</div>
           )}
           {tab === 'Reseñas' && <div className="state">Las reseñas estarán disponibles próximamente.</div>}
         </>

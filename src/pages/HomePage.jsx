@@ -18,14 +18,12 @@ export default function HomePage() {
     [debouncedQuery, criteria.tags, criteria.foodType, criteria.maxDistanceKm, coords.lat, coords.lng],
   );
 
-  return (
+  return (  
     <>
       <div className="search">
-        <span aria-hidden="true">🔍</span>
         <input type="search" placeholder="Busca restaurantes o platos saludables" value={criteria.query} onChange={(e) => setCriteria({ ...criteria, query: e.target.value })} />
       </div>
       <FilterBar criteria={criteria} onChange={setCriteria} />
-      <Link to="/recommendations" className="banner">✨ Ver recomendaciones según tus preferencias</Link>
       <h2>Restaurantes saludables cerca de ti</h2>
       <StateView loading={loading} error={error} empty={data?.length === 0} emptyText="No encontramos restaurantes con esos filtros.">
         <div className="grid">{data?.map((r) => <RestaurantCard key={r.id} restaurant={r} />)}</div>
