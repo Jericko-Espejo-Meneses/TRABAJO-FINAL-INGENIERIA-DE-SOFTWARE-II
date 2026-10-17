@@ -16,14 +16,35 @@ export default function RegisterPage() {
 
   const submit = async (e) => {
     e.preventDefault();
-    const found = validateRegister(values);
+
+    const normalizedValues = {
+      ...values,
+      name: values.name.trim(),
+      email: values.email.trim(),
+    };
+
+    const found = validateRegister(normalizedValues);
     setErrors(found);
+
     if (Object.keys(found).length > 0) return;
-    setBusy(true); setServerError('');
+
+    setBusy(true);
+    setServerError('');
+
     try {
-      await register({ name: values.name.trim(), email: values.email, password: values.password, address: values.address });
+      await register({
+        name: normalizedValues.name,
+        email: normalizedValues.email,
+        password: values.password,
+        address: values.address,
+      });
+
       navigate('/home', { replace: true });
-    } catch (err) { setServerError(err.message); } finally { setBusy(false); }
+    } catch (err) {
+      setServerError(err.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
