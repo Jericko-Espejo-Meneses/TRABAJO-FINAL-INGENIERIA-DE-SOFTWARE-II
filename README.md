@@ -4,7 +4,7 @@ Plataforma backend completa desarrollada con **NestJS** y **TypeScript** para **
 
 ---
 
-##Alcance Total del Road Map (Sprint 1 al Sprint 8)
+## Alcance Total del Road Map (Sprint 1 al Sprint 8)
 
 ### Release 1
 | Sprint | Épica | ID | Historia de Usuario | Puntos de Historia |
@@ -18,7 +18,7 @@ Plataforma backend completa desarrollada con **NestJS** y **TypeScript** para **
 | **Sprint 4** | Carrito, Pedidos y Pagos | **HE-HU9-009** | Como usuario, necesito seleccionar un método de pago y procesar el pago | 5 |
 | **Sprint 4** | Donación Automática | **HE-HU5-005** | Como usuario, necesito que un porcentaje de mi compra se done automáticamente | 3 |
 
-###Release 2
+### Release 2
 | Sprint | Épica | ID | Historia de Usuario | Puntos de Historia |
 | :--- | :--- | :--- | :--- | :---: |
 | **Sprint 5** | Historial e Impacto Social | **HE-HU6-006** | Como usuario, necesito visualizar mi historial de pedidos y donaciones | 5 |
