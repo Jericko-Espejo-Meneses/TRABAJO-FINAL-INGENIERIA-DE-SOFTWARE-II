@@ -4,9 +4,9 @@ Plataforma backend completa desarrollada con **NestJS** y **TypeScript** para **
 
 ---
 
-## 🎯 Alcance Total del Road Map (Sprint 1 al Sprint 8)
+##  Alcance Total del Road Map (Sprint 1 al Sprint 8)
 
-### 🚀 Release 1
+###  Release 1
 | Sprint | Épica | ID | Historia de Usuario | Puntos de Historia |
 | :--- | :--- | :--- | :--- | :---: |
 | **Sprint 1** | Registro y Autenticación | **HE-HU1-001** | Como usuario, necesito registrarme con mi correo o redes sociales | 5 |
@@ -18,7 +18,7 @@ Plataforma backend completa desarrollada con **NestJS** y **TypeScript** para **
 | **Sprint 4** | Carrito, Pedidos y Pagos | **HE-HU9-009** | Como usuario, necesito seleccionar un método de pago y procesar el pago | 5 |
 | **Sprint 4** | Donación Automática | **HE-HU5-005** | Como usuario, necesito que un porcentaje de mi compra se done automáticamente | 3 |
 
-### 🌟 Release 2
+###  Release 2
 | Sprint | Épica | ID | Historia de Usuario | Puntos de Historia |
 | :--- | :--- | :--- | :--- | :---: |
 | **Sprint 5** | Historial e Impacto Social | **HE-HU6-006** | Como usuario, necesito visualizar mi historial de pedidos y donaciones | 5 |
@@ -30,7 +30,7 @@ Plataforma backend completa desarrollada con **NestJS** y **TypeScript** para **
 
 ---
 
-## 🚀 Arquitectura y Tecnologías
+##  Arquitectura y Tecnologías
 
 - **Framework**: [NestJS 10](https://nestjs.com/) (Arquitectura modular escalable).
 - **Lenguaje**: TypeScript (ES2021).
@@ -42,7 +42,7 @@ Plataforma backend completa desarrollada con **NestJS** y **TypeScript** para **
 
 ---
 
-## 📂 Estructura del Repositorio
+##  Estructura del Repositorio
 
 ```text
 healthexpress-backend/
@@ -98,7 +98,7 @@ npm run start:dev
 
 ---
 
-## 🧪 Pruebas Automatizadas
+##  Pruebas Automatizadas
 Ejecutar la totalidad de pruebas unitarias:
 ```powershell
 npm test
@@ -106,9 +106,9 @@ npm test
 
 ---
 
-## 📋 Catálogo Completo de Endpoints
+##  Catálogo Completo de Endpoints
 
-### 🔐 Sprint 1: Registro y Autenticación
+###  Sprint 1: Registro y Autenticación
 * `POST /api/v1/auth/register` — **HE-HU1-001**: Registro con correo y contraseña.
 * `POST /api/v1/auth/social-register` — **HE-HU1-001**: Registro con redes sociales (Google, Facebook, Apple).
 * `POST /api/v1/auth/login` — **HE-HU10-010**: Inicio de sesión con correo y contraseña.
