@@ -115,18 +115,18 @@ npm test
 * `POST /api/v1/auth/social-login` — **HE-HU10-010**: Inicio de sesión con redes sociales.
 * `GET /api/v1/auth/me` — Perfil del usuario activo.
 
-### 🥗 Sprint 2: Exploración de Restaurantes Saludables
+###  Sprint 2: Exploración de Restaurantes Saludables
 * `GET /api/v1/restaurants/search` — **HE-HU2-002**: Búsqueda por dietas (`vegano`, `keto`, `sin gluten`), rating, tiempo y sello saludable.
 * `GET /api/v1/restaurants` — Catálogo general.
 * `GET /api/v1/restaurants/:id` — Ficha de restaurante y su catálogo de menú.
 * `GET /api/v1/restaurants/categories` — Categorías y etiquetas dietéticas.
 
-### 🍽️ Sprint 3: Menús y Recomendaciones Inteligentes
+###  Sprint 3: Menús y Recomendaciones Inteligentes
 * `GET /api/v1/recommendations/menus` — **HE-HU3-003**: Recomendación por objetivos (`weight_loss`, `muscle_gain`, `keto`, `detox`), calorías máximas y proteína.
 * `GET /api/v1/recommendations/personalized` — **HE-HU3-003**: Recomendaciones personalizadas para el usuario.
 * `GET /api/v1/recommendations/featured` — Platos destacados del día recomendados por nutricionistas.
 
-### 🛒 Sprint 3 y 4: Carrito y Confirmación de Pedidos
+###  Sprint 3 y 4: Carrito y Confirmación de Pedidos
 * `GET /api/v1/cart` — **HE-HU4-004**: Ver carrito con cálculo de subtotales y macronutrientes acumulados.
 * `POST /api/v1/cart/items` — **HE-HU4-004**: Agregar producto al carrito.
 * `PATCH /api/v1/cart/items/:itemId` — **HE-HU4-004**: Modificar cantidad o instrucciones.
@@ -134,24 +134,24 @@ npm test
 * `DELETE /api/v1/cart` — **HE-HU4-004**: Vaciar carrito.
 * `POST /api/v1/orders/checkout` — **HE-HU8-008**: Confirmar pedido a partir del carrito con dirección de entrega.
 
-### 💳 Sprint 4: Pagos y Donación Automática
+###  Sprint 4: Pagos y Donación Automática
 * `POST /api/v1/payments/process` — **HE-HU9-009**: Seleccionar método de pago (Tarjeta, Yape/Plin, Efectivo) y procesar el cobro.
 * `GET /api/v1/payments/order/:orderId` — Comprobante y recibo de pago.
 * `GET /api/v1/donations/foundations` — **HE-HU5-005**: Listar fundaciones beneficiarias de la donación automática (3%).
 
-### 📊 Sprint 5: Historial e Impacto Social
+###  Sprint 5: Historial e Impacto Social
 * `GET /api/v1/orders/history` — **HE-HU6-006**: Historial de pedidos realizados.
 * `GET /api/v1/donations/impact` — **HE-HU6-006**: Panel de impacto social (monto total donado, raciones generadas y causas).
 * `GET /api/v1/donations/history` — **HE-HU6-006**: Historial de donaciones generadas por pedido.
 
-### 🔔 Sprint 6: Notificaciones y Logros
+###  Sprint 6: Notificaciones y Logros
 * `GET /api/v1/notifications` — **HE-HU7-007**: Listar notificaciones recibidas (promociones, avisos, logros).
 * `PATCH /api/v1/notifications/:id/read` — Marcar notificación como leída.
 * `PATCH /api/v1/notifications/read-all` — Marcar todas como leídas.
 * `GET /api/v1/achievements` — Catálogo de insignias y logros de alimentación saludable.
 * `GET /api/v1/achievements/my-progress` — **HE-HU7-007**: Progreso e insignias desbloqueadas.
 
-### 👤 Sprint 7: Perfil y Seguimiento en Tiempo Real
+###  Sprint 7: Perfil y Seguimiento en Tiempo Real
 * `GET /api/v1/profile` — **HE-HU11-011**: Consulta de perfil, datos y preferencias dietéticas.
 * `PATCH /api/v1/profile` — **HE-HU11-011**: Editar datos personales, metas de salud y restricciones.
 * `POST /api/v1/profile/addresses` — Guardar nueva dirección de entrega.
@@ -159,7 +159,7 @@ npm test
 * `GET /api/v1/orders/:id/track` — **HE-HU13-013**: Seguimiento en tiempo real con línea de tiempo, estado y repartidor.
 * `POST /api/v1/orders/:id/advance-status` — Simulador de avance de estados en tiempo real.
 
-### ❤️ Sprint 8: Favoritos y Productos Detallados
+###  Sprint 8: Favoritos y Productos Detallados
 * `GET /api/v1/favorites` — **HE-HU12-012**: Listar restaurantes y menús favoritos del usuario.
 * `POST /api/v1/favorites/toggle` — **HE-HU12-012**: Alternar favorito (agregar/quitar con un solo toque).
 * `POST /api/v1/favorites/restaurants/:id` — **HE-HU12-012**: Agregar restaurante a favoritos.
@@ -172,6 +172,6 @@ npm test
 
 ---
 
-## 👤 Credenciales de Demostración
+##  Credenciales de Demostración
 - **Usuario**: `usuario.demo@healthexpress.com`
 - **Contraseña**: `Password123!`
