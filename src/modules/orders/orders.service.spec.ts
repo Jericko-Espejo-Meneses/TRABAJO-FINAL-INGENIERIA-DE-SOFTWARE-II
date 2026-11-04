@@ -7,6 +7,8 @@ import { DonationsService } from '../donations/donations.service';
 import { OrderStatus } from './entities/order.entity';
 import { BadRequestException } from '@nestjs/common';
 
+import { PrismaService } from '../../prisma/prisma.service';
+
 describe('OrdersService (Sprint 4: HE-HU8-008 & Sprint 5: HE-HU6-006 & Sprint 7: HE-HU13-013)', () => {
   let service: OrdersService;
   let cartService: CartService;
@@ -14,7 +16,23 @@ describe('OrdersService (Sprint 4: HE-HU8-008 & Sprint 5: HE-HU6-006 & Sprint 7:
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [OrdersService, CartService, NotificationsService, DonationsService, DatabaseService],
+      providers: [
+        OrdersService,
+        CartService,
+        NotificationsService,
+        DonationsService,
+        DatabaseService,
+        {
+          provide: PrismaService,
+          useValue: {
+            connected: false,
+            order: { findMany: jest.fn().mockResolvedValue([]), upsert: jest.fn(), update: jest.fn() },
+            orderTracking: { update: jest.fn() },
+            user: { findUnique: jest.fn(), create: jest.fn() },
+            restaurant: { findUnique: jest.fn(), create: jest.fn() },
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<OrdersService>(OrdersService);

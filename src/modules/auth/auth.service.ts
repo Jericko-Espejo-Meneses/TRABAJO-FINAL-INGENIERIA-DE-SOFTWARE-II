@@ -13,8 +13,10 @@ import { User } from '../users/entities/user.entity';
 
 export interface AuthResponse {
   accessToken: string;
+  token?: string;
   tokenType: string;
   user: Omit<User, 'passwordHash'>;
+  usuario?: any;
 }
 
 @Injectable()
@@ -28,27 +30,37 @@ export class AuthService {
    * HE-HU1-001: Registro con correo electrónico y contraseña
    */
   async register(dto: RegisterDto): Promise<AuthResponse> {
-    const existing = await this.usersService.findByEmail(dto.email);
+    const email = dto.email || dto.correo;
+    const password = dto.password || dto.contrasena;
+    const fullName = dto.fullName || dto.nombre || '';
+    const phone = dto.phone || dto.telefono;
+    const address = dto.address || dto.direccion;
+
+    if (!email || !password) {
+      throw new ConflictException('El correo y la contraseña son requeridos');
+    }
+
+    const existing = await this.usersService.findByEmail(email);
     if (existing) {
       throw new ConflictException('Ya existe una cuenta registrada con este correo electrónico');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await this.usersService.create({
-      email: dto.email,
-      fullName: dto.fullName,
+      email,
+      fullName: fullName || email.split('@')[0],
       passwordHash,
-      phone: dto.phone,
+      phone,
       provider: 'email',
       dietaryPreferences: dto.dietaryPreferences || [],
       healthGoals: dto.healthGoals || [],
-      addresses: dto.address
+      addresses: address
         ? [
             {
               id: `addr-${Date.now()}`,
               label: 'Principal',
-              street: dto.address,
+              street: address,
               city: 'Lima',
               isDefault: true,
             },
@@ -63,7 +75,14 @@ export class AuthService {
    * HE-HU10-010: Inicio de sesión con correo electrónico y contraseña
    */
   async login(dto: LoginDto): Promise<AuthResponse> {
-    const user = await this.usersService.findByEmail(dto.email);
+    const email = dto.email || dto.correo;
+    const password = dto.password || dto.contrasena;
+
+    if (!email || !password) {
+      throw new UnauthorizedException('Credenciales inválidas (correo o contraseña incorrectos)');
+    }
+
+    const user = await this.usersService.findByEmail(email);
     if (!user) {
       throw new UnauthorizedException('Credenciales inválidas (correo o contraseña incorrectos)');
     }
@@ -74,7 +93,7 @@ export class AuthService {
       );
     }
 
-    const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       throw new UnauthorizedException('Credenciales inválidas (correo o contraseña incorrectos)');
     }
@@ -100,7 +119,7 @@ export class AuthService {
           avatarUrl: dto.avatarUrl || existingByEmail.avatarUrl,
         });
       } else {
-        // Register new user via social provider
+        // Create new account via social auth
         user = await this.usersService.create({
           email: dto.email,
           fullName: dto.fullName,
@@ -124,11 +143,25 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload);
+    const safeUser = this.usersService.sanitize(user);
 
     return {
       accessToken,
+      token: accessToken,
       tokenType: 'Bearer',
-      user: this.usersService.sanitize(user),
+      user: safeUser,
+      usuario: {
+        idUsuario: safeUser.id,
+        id: safeUser.id,
+        correo: safeUser.email,
+        email: safeUser.email,
+        nombre: safeUser.fullName,
+        name: safeUser.fullName,
+        direccion: safeUser.addresses?.[0]?.street || '',
+        telefono: safeUser.phone || '',
+        preferencias: safeUser.dietaryPreferences || [],
+        biografia: '',
+      },
     };
   }
 }

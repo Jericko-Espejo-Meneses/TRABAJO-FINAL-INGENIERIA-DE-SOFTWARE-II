@@ -6,6 +6,7 @@ import { DonationsService } from '../donations/donations.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AchievementsService } from '../achievements/achievements.service';
 import { DatabaseService } from '../../database/database.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { OrderStatus } from '../orders/entities/order.entity';
 
 describe('PaymentsService (Sprint 4: HE-HU9-009 & HE-HU5-005)', () => {
@@ -24,6 +25,16 @@ describe('PaymentsService (Sprint 4: HE-HU9-009 & HE-HU5-005)', () => {
         NotificationsService,
         AchievementsService,
         DatabaseService,
+        {
+          provide: PrismaService,
+          useValue: {
+            connected: false,
+            order: { findMany: jest.fn().mockResolvedValue([]), upsert: jest.fn(), update: jest.fn() },
+            orderTracking: { update: jest.fn() },
+            user: { findUnique: jest.fn(), create: jest.fn() },
+            restaurant: { findUnique: jest.fn(), create: jest.fn() },
+          },
+        },
       ],
     }).compile();
 

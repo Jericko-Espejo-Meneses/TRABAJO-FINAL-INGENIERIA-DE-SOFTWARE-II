@@ -45,6 +45,14 @@ async function bootstrap() {
     }),
   );
 
+  // Middleware de compatibilidad: Soporta tanto '/api/...' (frontend por defecto) como '/api/v1/...'
+  app.use((req: any, res: any, next: any) => {
+    if (req.url.startsWith('/api/') && !req.url.startsWith('/api/v1/') && !req.url.startsWith('/api/docs')) {
+      req.url = req.url.replace('/api/', '/api/v1/');
+    }
+    next();
+  });
+
   // Prefix global para endpoints
   app.setGlobalPrefix('api/v1');
 

@@ -3,13 +3,26 @@ import { ProfileService } from './profile.service';
 import { UsersService } from '../users/users.service';
 import { DatabaseService } from '../../database/database.service';
 
+import { PrismaService } from '../../prisma/prisma.service';
+
 describe('ProfileService (Sprint 7: HE-HU11-011)', () => {
   let service: ProfileService;
   let db: DatabaseService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ProfileService, UsersService, DatabaseService],
+      providers: [
+        ProfileService,
+        UsersService,
+        DatabaseService,
+        {
+          provide: PrismaService,
+          useValue: {
+            connected: false,
+            user: { findUnique: jest.fn(), upsert: jest.fn(), update: jest.fn() },
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<ProfileService>(ProfileService);

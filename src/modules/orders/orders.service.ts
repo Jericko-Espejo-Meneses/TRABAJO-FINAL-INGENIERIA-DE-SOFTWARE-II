@@ -2,23 +2,237 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  OnModuleInit,
+  Logger,
 } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { Order, OrderStatus, OrderTracking } from './entities/order.entity';
 import { CheckoutOrderDto } from './dto/checkout-order.dto';
 import { CartService } from '../cart/cart.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { DonationsService } from '../donations/donations.service';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class OrdersService {
+export class OrdersService implements OnModuleInit {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly db: DatabaseService,
+    private readonly prisma: PrismaService,
     private readonly cartService: CartService,
     private readonly notificationsService: NotificationsService,
     private readonly donationsService: DonationsService,
   ) {}
+
+  async onModuleInit() {
+    await this.syncOrdersFromDatabase();
+  }
+
+  /**
+   * Sincroniza las órdenes de PostgreSQL (Supabase) al almacén en memoria
+   */
+  async syncOrdersFromDatabase() {
+    try {
+      if (!this.prisma.connected) return;
+      const dbOrders = await this.prisma.order.findMany({
+        include: {
+          items: true,
+          tracking: true,
+          donation: true,
+          payment: true,
+        },
+      });
+
+      for (const dbo of dbOrders) {
+        const orderEntity = this.mapDbOrderToEntity(dbo);
+        this.db.orders.set(orderEntity.id, orderEntity);
+      }
+      this.logger.log(`📦 ${dbOrders.length} pedidos sincronizados desde PostgreSQL / Supabase.`);
+    } catch (err: any) {
+      this.logger.warn(`No se pudo sincronizar pedidos desde DB: ${err.message}`);
+    }
+  }
+
+  private mapDbOrderToEntity(dbo: any): Order {
+    let timeline: any[] = [];
+    try {
+      timeline = dbo.tracking?.timeline ? JSON.parse(dbo.tracking.timeline) : [];
+    } catch {
+      timeline = [];
+    }
+
+    const tracking: OrderTracking = {
+      currentStatus: (dbo.tracking?.currentStatus as OrderStatus) || (dbo.status as OrderStatus),
+      progressPercentage: dbo.tracking?.progressPercentage ?? 30,
+      estimatedDeliveryTimeMinutes: dbo.tracking?.estimatedDeliveryMinutes ?? 30,
+      driverName: dbo.tracking?.driverName || 'Jorge Ramírez',
+      driverPhone: dbo.tracking?.driverPhone || '+51 981 123 456',
+      vehiclePlate: dbo.tracking?.vehiclePlate || 'MOT-7821',
+      currentCoordinates: {
+        lat: dbo.tracking?.latitude ?? -12.112,
+        lng: dbo.tracking?.longitude ?? -76.994,
+      },
+      timeline: timeline.map((t: any) => ({
+        ...t,
+        timestamp: new Date(t.timestamp),
+      })),
+    };
+
+    return {
+      id: dbo.id,
+      userId: dbo.userId,
+      restaurantId: dbo.restaurantId,
+      restaurantName: dbo.restaurantName,
+      items: (dbo.items || []).map((it: any) => ({
+        id: it.id,
+        menuItemId: it.menuItemId,
+        name: it.name,
+        price: it.unitPrice,
+        unitPrice: it.unitPrice,
+        quantity: it.quantity,
+        lineTotal: it.lineTotal,
+        imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
+        restaurantId: dbo.restaurantId,
+        restaurantName: dbo.restaurantName,
+        nutritionalInfo: {
+          calories: it.calories,
+          proteinGrams: it.proteinGrams,
+          carbsGrams: it.carbsGrams,
+          fatGrams: it.fatGrams,
+        },
+      })),
+      subtotal: dbo.subtotal,
+      deliveryFee: dbo.deliveryFee,
+      total: dbo.total,
+      totalNutrition: {
+        calories: dbo.totalCalories,
+        proteinGrams: dbo.totalProtein,
+        carbsGrams: dbo.totalCarbs,
+        fatGrams: dbo.totalFat,
+      },
+      deliveryAddress: {
+        street: dbo.deliveryAddress,
+        city: 'Lima',
+      },
+      contactPhone: dbo.contactPhone,
+      status: dbo.status as OrderStatus,
+      tracking,
+      donationId: dbo.donationId || undefined,
+      createdAt: dbo.createdAt,
+      updatedAt: dbo.updatedAt,
+    };
+  }
+
+  /**
+   * Persiste la orden en PostgreSQL (Supabase)
+   */
+  private async persistOrderToPrisma(order: Order) {
+    try {
+      if (!this.prisma.connected) return;
+
+      // 1. Asegurar que el usuario existe en PostgreSQL
+      const userExists = await this.prisma.user.findUnique({ where: { id: order.userId } });
+      if (!userExists) {
+        const memUser = this.db.users.get(order.userId);
+        if (memUser) {
+          await this.prisma.user.create({
+            data: {
+              id: memUser.id,
+              email: memUser.email,
+              passwordHash: memUser.passwordHash,
+              fullName: memUser.fullName,
+              phone: memUser.phone,
+              provider: memUser.provider || 'email',
+              dietaryPreferences: JSON.stringify(memUser.dietaryPreferences || []),
+              healthGoals: JSON.stringify(memUser.healthGoals || []),
+            },
+          }).catch(() => {});
+        }
+      }
+
+      // 2. Asegurar que el restaurante existe en PostgreSQL
+      const restExists = await this.prisma.restaurant.findUnique({ where: { id: order.restaurantId } });
+      if (!restExists) {
+        const memRest = this.db.restaurants.get(order.restaurantId);
+        if (memRest) {
+          await this.prisma.restaurant.create({
+            data: {
+              id: memRest.id,
+              name: memRest.name,
+              description: memRest.description,
+              logoUrl: memRest.logoUrl,
+              bannerUrl: memRest.bannerUrl,
+              address: memRest.address,
+              rating: memRest.rating,
+              deliveryTimeMinutes: memRest.deliveryTimeMinutes,
+              deliveryFee: memRest.deliveryFee,
+              foodType: memRest.category || 'Saludable',
+            },
+          }).catch(() => {});
+        }
+      }
+
+      const deliveryAddressStr = typeof order.deliveryAddress === 'string'
+        ? order.deliveryAddress
+        : `${order.deliveryAddress?.street || ''}, ${order.deliveryAddress?.city || ''}`.trim() || 'Dirección de entrega';
+
+      // 3. Crear orden en PostgreSQL
+      await this.prisma.order.upsert({
+        where: { id: order.id },
+        update: {
+          status: order.status,
+          total: order.total,
+        },
+        create: {
+          id: order.id,
+          userId: order.userId,
+          restaurantId: order.restaurantId,
+          restaurantName: order.restaurantName,
+          subtotal: order.subtotal,
+          deliveryFee: order.deliveryFee,
+          total: order.total,
+          totalCalories: order.totalNutrition?.calories || 0,
+          totalProtein: order.totalNutrition?.proteinGrams || 0,
+          totalCarbs: order.totalNutrition?.carbsGrams || 0,
+          totalFat: order.totalNutrition?.fatGrams || 0,
+          status: order.status,
+          deliveryAddress: deliveryAddressStr,
+          contactPhone: order.contactPhone || '+51987654321',
+          items: {
+            create: (order.items || []).map((it: any) => ({
+              menuItemId: it.menuItemId || null,
+              name: it.name,
+              unitPrice: it.unitPrice || it.price || 0,
+              quantity: it.quantity || 1,
+              lineTotal: it.lineTotal || ((it.unitPrice || it.price || 0) * (it.quantity || 1)),
+              calories: it.nutritionalInfo?.calories || it.calories || 0,
+              proteinGrams: it.nutritionalInfo?.proteinGrams || it.proteinGrams || 0,
+              carbsGrams: it.nutritionalInfo?.carbsGrams || it.carbsGrams || 0,
+              fatGrams: it.nutritionalInfo?.fatGrams || it.fatGrams || 0,
+            })),
+          },
+          tracking: order.tracking ? {
+            create: {
+              currentStatus: order.tracking.currentStatus,
+              progressPercentage: order.tracking.progressPercentage || 30,
+              estimatedDeliveryMinutes: order.tracking.estimatedDeliveryTimeMinutes || 30,
+              driverName: order.tracking.driverName || 'Jorge Ramírez',
+              driverPhone: order.tracking.driverPhone || '+51 981 123 456',
+              vehiclePlate: order.tracking.vehiclePlate || 'MOT-7821',
+              latitude: order.tracking.currentCoordinates?.lat || -12.112,
+              longitude: order.tracking.currentCoordinates?.lng || -76.994,
+              timeline: JSON.stringify(order.tracking.timeline || []),
+            },
+          } : undefined,
+        },
+      });
+
+      this.logger.log(`💾 Pedido #${order.id} persistido exitosamente en PostgreSQL (Supabase)`);
+    } catch (err: any) {
+      this.logger.error(`Error persistiendo pedido en Supabase: ${err.message}`);
+    }
+  }
 
   /**
    * HE-HU8-008: Confirmar pedido a partir del carrito
@@ -108,6 +322,9 @@ export class OrdersService {
 
     this.db.orders.set(order.id, order);
 
+    // Persistir en PostgreSQL
+    await this.persistOrderToPrisma(order);
+
     // Vaciar el carrito tras generar la orden exitosamente
     await this.cartService.clearCart(userId);
 
@@ -132,17 +349,18 @@ export class OrdersService {
     const restaurantName = rest?.name || data.restaurantName || 'GreenBowl Healthy Bar';
 
     const rawItems = data.items || data.productos || [];
-    const items = rawItems.map((i: any) => {
-      const menuItemId = i.menuItemId || i.dishId || i.idProducto || 'menu-1';
+    const items = rawItems.map((it: any) => {
+      const menuItemId = it.menuItemId || it.dishId || it.idProducto || 'menu-1';
       const menuItem = this.db.menuItems.get(menuItemId);
-      const name = i.name || i.nombre || menuItem?.name || 'Plato Saludable';
-      const price = Number(i.unitPrice || i.precio || i.price || menuItem?.price || 25);
-      const quantity = Number(i.quantity || i.cantidad || 1);
+      const name = it.name || it.nombre || menuItem?.name || 'Plato Saludable';
+      const price = Number(it.unitPrice || it.precio || it.price || menuItem?.price || 25);
+      const quantity = Number(it.quantity || it.cantidad || 1);
       return {
         id: `item-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 6)}`,
         menuItemId,
         name,
         price,
+        unitPrice: price,
         quantity,
         imageUrl: menuItem?.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
         restaurantId,
@@ -228,6 +446,9 @@ export class OrdersService {
 
     this.db.orders.set(order.id, order);
 
+    // Persistir en PostgreSQL
+    await this.persistOrderToPrisma(order);
+
     // Donación automática vinculada (HE-HU5-005)
     const donation = await this.donationsService.processAutomaticDonation(order);
     order.donationId = donation.id;
@@ -248,6 +469,33 @@ export class OrdersService {
    * HE-HU6-006: Historial de pedidos del usuario
    */
   async getOrderHistory(userId: string): Promise<Order[]> {
+    // Si Prisma está conectado, consultar directamente la base de datos para máxima frescura
+    try {
+      if (this.prisma.connected) {
+        const dbOrders = await this.prisma.order.findMany({
+          where: { userId },
+          include: {
+            items: true,
+            tracking: true,
+            donation: true,
+            payment: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (dbOrders.length > 0) {
+          const entities = dbOrders.map((dbo) => {
+            const ent = this.mapDbOrderToEntity(dbo);
+            this.db.orders.set(ent.id, ent);
+            return ent;
+          });
+          return entities;
+        }
+      }
+    } catch {
+      // fallback a memoria
+    }
+
     return Array.from(this.db.orders.values())
       .filter((o) => o.userId === userId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -257,7 +505,28 @@ export class OrdersService {
    * Obtener detalle de pedido por ID
    */
   async getOrderById(orderId: string, userId?: string): Promise<Order> {
-    const order = this.db.orders.get(orderId);
+    let order = this.db.orders.get(orderId);
+
+    if (!order && this.prisma.connected) {
+      try {
+        const dbOrder = await this.prisma.order.findUnique({
+          where: { id: orderId },
+          include: {
+            items: true,
+            tracking: true,
+            donation: true,
+            payment: true,
+          },
+        });
+        if (dbOrder) {
+          order = this.mapDbOrderToEntity(dbOrder);
+          this.db.orders.set(order.id, order);
+        }
+      } catch {
+        // fallback
+      }
+    }
+
     if (!order) {
       throw new NotFoundException(`Pedido con ID "${orderId}" no encontrado`);
     }
@@ -287,10 +556,7 @@ export class OrdersService {
    * Simulación de avance en tiempo real para el seguimiento del pedido (HE-HU13-013)
    */
   async advanceOrderStatus(orderId: string, newStatus: OrderStatus): Promise<Order> {
-    const order = this.db.orders.get(orderId);
-    if (!order) {
-      throw new NotFoundException(`Pedido con ID "${orderId}" no encontrado`);
-    }
+    const order = await this.getOrderById(orderId);
 
     order.status = newStatus;
     order.tracking.currentStatus = newStatus;
@@ -299,48 +565,57 @@ export class OrdersService {
     switch (newStatus) {
       case OrderStatus.CONFIRMED:
         order.tracking.progressPercentage = 30;
-        order.tracking.estimatedDeliveryTimeMinutes = 30;
+        order.tracking.estimatedDeliveryTimeMinutes = 25;
         break;
       case OrderStatus.PREPARING:
-        order.tracking.progressPercentage = 50;
+        order.tracking.progressPercentage = 55;
         order.tracking.estimatedDeliveryTimeMinutes = 20;
         break;
       case OrderStatus.ON_THE_WAY:
         order.tracking.progressPercentage = 80;
         order.tracking.estimatedDeliveryTimeMinutes = 10;
-        order.tracking.driverName = 'Rodrigo Vásquez';
-        order.tracking.driverPhone = '+51 987 111 222';
-        order.tracking.vehiclePlate = 'MOT-9912';
-        order.tracking.currentCoordinates = { lat: -12.118, lng: -77.012 };
         break;
       case OrderStatus.DELIVERED:
         order.tracking.progressPercentage = 100;
         order.tracking.estimatedDeliveryTimeMinutes = 0;
         break;
-      case OrderStatus.CANCELLED:
-        order.tracking.progressPercentage = 0;
-        break;
     }
 
     // Actualizar timeline
-    for (const step of order.tracking.timeline) {
-      if (step.status === newStatus) {
-        step.completed = true;
-        step.timestamp = new Date();
-        break;
-      } else {
-        step.completed = true;
+    const step = order.tracking.timeline.find((t) => t.status === newStatus);
+    if (step) {
+      step.completed = true;
+      step.timestamp = new Date();
+    }
+
+    this.db.orders.set(orderId, order);
+
+    // Persistir actualización en PostgreSQL
+    if (this.prisma.connected) {
+      try {
+        await this.prisma.order.update({
+          where: { id: orderId },
+          data: { status: newStatus },
+        });
+        await this.prisma.orderTracking.update({
+          where: { orderId },
+          data: {
+            currentStatus: newStatus,
+            progressPercentage: order.tracking.progressPercentage,
+            estimatedDeliveryMinutes: order.tracking.estimatedDeliveryTimeMinutes,
+            timeline: JSON.stringify(order.tracking.timeline),
+          },
+        });
+      } catch {
+        // resilient
       }
     }
 
-    order.updatedAt = new Date();
-    this.db.orders.set(orderId, order);
-
-    // Notificar al usuario (HE-HU7-007)
+    // Notificación en vivo
     await this.notificationsService.createNotification(
       order.userId,
-      `🛵 Actualización de tu pedido #${order.id}`,
-      `El estado de tu pedido cambió a: ${newStatus}`,
+      `🛵 Actualización de tu pedido #${orderId}`,
+      `El estado ha cambiado a: ${newStatus}`,
       'ORDER_UPDATE',
       { orderId, status: newStatus },
     );

@@ -5,6 +5,8 @@ import { UsersService } from '../users/users.service';
 import { DatabaseService } from '../../database/database.service';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 
+import { PrismaService } from '../../prisma/prisma.service';
+
 describe('AuthService (Sprint 1: HE-HU1-001 & HE-HU10-010)', () => {
   let authService: AuthService;
   let db: DatabaseService;
@@ -15,6 +17,13 @@ describe('AuthService (Sprint 1: HE-HU1-001 & HE-HU10-010)', () => {
         AuthService,
         UsersService,
         DatabaseService,
+        {
+          provide: PrismaService,
+          useValue: {
+            connected: false,
+            user: { findUnique: jest.fn(), upsert: jest.fn(), update: jest.fn() },
+          },
+        },
         {
           provide: JwtService,
           useValue: {
