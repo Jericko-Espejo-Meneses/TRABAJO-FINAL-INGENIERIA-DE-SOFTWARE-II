@@ -6,7 +6,11 @@ const seed = () => ({
 });
 
 const load = () => {
-  try { return JSON.parse(localStorage.getItem(KEY)) ?? seed(); } catch { return seed(); }
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY)) ?? seed();
+    // El Release 1 guardaba usuarios sin una lista de pedidos.
+    return { ...saved, orders: saved.orders ?? [] };
+  } catch { return seed(); }
 };
 
 export const db = load();
