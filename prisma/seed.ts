@@ -377,9 +377,9 @@ async function main() {
       },
     },
   });
-  console.log(`✅ Pedido inicial e impacto social creados en SQL Server: ${initialOrder.id}`);
+  console.log(`✅ Pedido inicial e impacto social creados en PostgreSQL (Supabase): ${initialOrder.id}`);
 
-  console.log('✨ Semillero de base de datos Microsoft SQL Server completado con éxito.');
+  console.log('✨ Semillero de base de datos PostgreSQL (Supabase) completado con éxito.');
 }
 
 main()
