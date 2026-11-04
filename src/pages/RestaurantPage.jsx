@@ -4,6 +4,7 @@ import DishCard from '../components/restaurants/DishCard';
 import Chip from '../components/ui/Chip';
 import StateView from '../components/ui/StateView';
 import { useServices } from '../context/ServicesContext';
+import { useAddToCart } from '../hooks/useAddToCart';
 import { useAsync } from '../hooks/useAsync';
 import { useGeolocation } from '../hooks/useGeolocation';
 
@@ -13,6 +14,7 @@ export default function RestaurantPage() {
   const { id } = useParams();
   const { restaurants } = useServices();
   const coords = useGeolocation();
+  const addToCart = useAddToCart();
   const [tab, setTab] = useState('Información');
   const { data, loading, error } = useAsync(() => restaurants.getById(id, coords), [id, coords.lat, coords.lng]);
 
@@ -34,7 +36,7 @@ export default function RestaurantPage() {
               {data.restaurant.distanceKm != null && <p><b>Se encuentra a: </b>{data.restaurant.distanceKm} km de ti</p>}
             </div>
           )}
-          {tab === 'Menú' && <div className="grid">{data.menu.map((d) => <DishCard key={d.id} dish={d} />)}</div>}
+          {tab === 'Menú' && <div className="grid">{data.menu.map((d) => <DishCard key={d.id} dish={d} onAdd={(dish) => addToCart(dish, data.restaurant)} />)}</div>}
         </>
       )}
     </StateView>

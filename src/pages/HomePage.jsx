@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import FilterBar from '../components/restaurants/FilterBar';
 import RestaurantCard from '../components/restaurants/RestaurantCard';
 import StateView from '../components/ui/StateView';

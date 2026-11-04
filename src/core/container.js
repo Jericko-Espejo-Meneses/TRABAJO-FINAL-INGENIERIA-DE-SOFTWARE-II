@@ -2,11 +2,18 @@ import { config } from './config';
 import { HttpClient } from './http/HttpClient';
 import { AuthHttpClient } from './http/AuthHttpClient';
 import { TokenStorage } from './storage/TokenStorage';
+import { CheckoutFacade } from '../checkout/CheckoutFacade';
 import { HttpAuthService } from '../services/http/HttpAuthService';
 import { HttpRestaurantService } from '../services/http/HttpRestaurantService';
+import { HttpRecommendationService } from '../services/http/HttpRecommendationService';
+import { HttpOrderService } from '../services/http/HttpOrderService';
+import { HttpDonationService } from '../services/http/HttpDonationService';
 import { HttpProfileService } from '../services/http/HttpProfileService';
 import { MockAuthService } from '../services/mock/MockAuthService';
 import { MockRestaurantService } from '../services/mock/MockRestaurantService';
+import { MockRecommendationService } from '../services/mock/MockRecommendationService';
+import { MockOrderService } from '../services/mock/MockOrderService';
+import { MockDonationService } from '../services/mock/MockDonationService';
 import { MockProfileService } from '../services/mock/MockProfileService';
 
 // PATRÓN FACTORY: único lugar donde se decide qué implementación se usa.
@@ -16,9 +23,13 @@ export function createServices(cfg = config) {
   let services;
 
   if (cfg.useMock) {
+    const orders = new MockOrderService(tokenStorage);
     services = {
       auth: new MockAuthService(tokenStorage),
       restaurants: new MockRestaurantService(),
+      recommendations: new MockRecommendationService(tokenStorage),
+      orders,
+      donations: new MockDonationService(tokenStorage),
       profile: new MockProfileService(tokenStorage),
     };
   } else {
@@ -30,10 +41,14 @@ export function createServices(cfg = config) {
     services = {
       auth: new HttpAuthService(http),
       restaurants: new HttpRestaurantService(http),
+      recommendations: new HttpRecommendationService(http),
+      orders: new HttpOrderService(http),
+      donations: new HttpDonationService(http),
       profile: new HttpProfileService(http),
     };
   }
 
+  services.checkout = new CheckoutFacade({ orders: services.orders, donationPercentage: cfg.donationPercentage });
   services.tokenStorage = tokenStorage;
   return services;
 }

@@ -15,12 +15,16 @@ export class MockAuthService extends AuthService {
     await delay();
     const mail = email.trim().toLowerCase();
     if (db.users.some((u) => u.email === mail)) throw new Error('Ya existe una cuenta con ese correo');
-    const user = { id: `u${Date.now()}`, name, email: mail, password, address: address ?? '', phone: '', bio: '' };
+    const user = { id: `u${Date.now()}`, name, email: mail, password, address: address ?? '', phone: '', bio: '', preferences: [] };
     db.users.push(user);
     persist();
     return { token: `mock-${user.id}`, user: publicUser(user) };
   }
 
+  async loginWithProvider() {
+    await delay();
+    return { token: `mock-${db.users[0].id}`, user: publicUser(db.users[0]) };
+  }
 
   async getCurrentUser() {
     await delay(100);

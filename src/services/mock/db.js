@@ -1,7 +1,8 @@
 // "Base de datos" falsa persistida en localStorage solo para el modo demo.
 const KEY = 'he-mock-db';
 const seed = () => ({
-  users: [{ id: 'u1', name: 'Usuario Demo', email: 'demo@healthyexpress.com', password: 'Demo1234', address: 'Av. Larco 123, Miraflores', phone: '', bio: ''}],
+  users: [{ id: 'u1', name: 'Usuario Demo', email: 'demo@healthyexpress.com', password: 'Demo1234', address: 'Av. Larco 123, Miraflores', phone: '', bio: '', preferences: ['high-protein'] }],
+  orders: [],
 });
 
 const load = () => {

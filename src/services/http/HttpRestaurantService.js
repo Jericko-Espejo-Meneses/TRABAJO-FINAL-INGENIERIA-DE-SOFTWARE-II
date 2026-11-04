@@ -16,6 +16,6 @@ export class HttpRestaurantService extends RestaurantService {
 
   async getById(id, coords) {
     const dto = await this.http.get(`/restaurantes/${id}`, { params: { lat: coords?.lat, lng: coords?.lng } });
-    return { restaurant: toRestaurant(dto), menu: (dto.productos ?? []).map(toDish) };
+    return { restaurant: toRestaurant(dto), menu: (dto.productos ?? dto.menu ?? []).map(toDish) };
   }
 }
