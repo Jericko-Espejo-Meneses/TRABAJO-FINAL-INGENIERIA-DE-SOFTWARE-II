@@ -14,9 +14,10 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 
-# Environment variables
+# Environment variables & secrets (keep outside GitHub)
 .env
-.env.local
+.env.*
+!.env.example
 
 # IDE files
 .idea/

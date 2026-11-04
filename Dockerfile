@@ -1,5 +1,5 @@
 # =============================================================
-# HealthExpress Backend - Dockerfile Multi-Stage (NestJS + Prisma + SQL Server)
+# HealthExpress Backend - Dockerfile Multi-Stage (NestJS + Prisma + PostgreSQL)
 # =============================================================
 
 # 1. Base Image con dependencias del sistema requeridas por Prisma Engine

@@ -1,40 +1,25 @@
 services:
   # =============================================================
-  # Microsoft SQL Server Database Container
+  # PostgreSQL Database Container (Local dev / testing)
   # =============================================================
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: healthexpress-sqlserver
+  postgres:
+    image: postgres:16-alpine
+    container_name: healthexpress-postgres
     restart: always
     environment:
-      ACCEPT_EULA: 'Y'
-      MSSQL_SA_PASSWORD: 'Password123!'
-      MSSQL_PID: 'Developer'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Password123!
+      POSTGRES_DB: healthexpress
     ports:
-      - '1433:1433'
+      - '5432:5432'
     volumes:
-      - mssql_data:/var/opt/mssql
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Password123!" -Q "SELECT 1" -C || exit 1']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d healthexpress']
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
-    networks:
-      - healthexpress-net
-
-  # =============================================================
-  # Inicializador automático de la Base de Datos healthexpress
-  # =============================================================
-  sqlserver-init:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    depends_on:
-      sqlserver:
-        condition: service_healthy
-    entrypoint: >
-      /bin/bash -c "
-      /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P 'Password123!' -Q 'IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N\"healthexpress\") CREATE DATABASE [healthexpress];' -C
-      "
+      start_period: 10s
     networks:
       - healthexpress-net
 
@@ -55,17 +40,15 @@ services:
       JWT_SECRET: healthexpress-super-secure-jwt-secret-key-2026
       JWT_EXPIRATION: 7d
       CORS_ORIGIN: http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000
-      DATABASE_URL: sqlserver://sqlserver:1433;database=healthexpress;user=sa;password=Password123!;encrypt=true;trustServerCertificate=true;
+      DATABASE_URL: postgresql://postgres:Password123!@postgres:5432/healthexpress?schema=public
     depends_on:
-      sqlserver:
+      postgres:
         condition: service_healthy
-      sqlserver-init:
-        condition: service_completed_successfully
     networks:
       - healthexpress-net
 
 volumes:
-  mssql_data:
+  pgdata:
     driver: local
 
 networks:
