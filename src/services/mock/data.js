@@ -39,6 +39,13 @@ const raw = [
       dish('d17', 'Sopa de verduras', 160, 8, ['low-calorie', 'vegan', 'low-fat'], '🍜', 'Caldo casero de verduras'),
       dish('d18', 'Arroz integral con pollo', 480, 13, ['low-fat'], '🍚', 'Porción balanceada'),
     ] },
+  {
+    id: 'r7', name: 'Andes Verde Kitchen', foodType: 'Fit', distanceKm: 2.1, priceLevel: 2, rating: 4.8, emoji: '🥗', address: 'Av. Primavera 820, Surco',
+    menu: [
+      dish('d19', 'Bowl Andino Power', 430, 29, ['high-protein', 'low-fat'], '🥙', 'Quinua, pollo a la plancha, palta y vegetales frescos.'),
+      dish('d20', 'Salmon Verde Fit', 510, 38, ['high-protein', 'low-fat'], '🐟', 'Salmón a la plancha acompañado de camote y brócoli.'),
+      dish('d21', 'Ensalada Vital Andina', 290, 22, ['vegan', 'low-calorie'], '🥗', 'Quinua, garbanzos, pepino, tomate y palta.'),
+    ] },  
 ];
 
 export const restaurants = raw.map((r) => ({
