@@ -42,17 +42,23 @@ export const toRestaurant = (d) => ({
 
 export const toOrder = (d) => ({
   id: d.idPedido ?? d.id,
-  restaurantName: d.restaurante ?? d.restaurantName,
-  createdAt: d.fecha ?? d.createdAt,
-  subtotal: Number(d.subtotal),
+  restaurantName: 
+    d.restaurante?.nombre ??
+    d.restaurante?.name ??
+    d.nombreRestaurante ??
+    d.restaurante ??
+    d.restaurantName ??
+    'Restaurante',
+  createdAt: d.fecha ?? d.createdAt ?? new Date().toISOString(),
+  subtotal: Number(d.subtotal ?? d.total ?? 0),
   donation: Number(d.montoDonacion ?? d.donation ?? 0),
-  total: Number(d.total),
+  total: Number(d.total ?? 0),
   status: d.estado ?? d.status ?? 'confirmed',
-  paymentMethod: d.pago?.metodoPago ?? d.paymentMethod,
+  paymentMethod: d.pago?.metodoPago ?? d.metodoPago ?? d.paymentMethod,
   items: (d.productos ?? d.items ?? []).map((i) => ({
-    name: i.nombre ?? i.name,
-    quantity: i.cantidad ?? i.quantity,
-    unitPrice: Number(i.precio ?? i.unitPrice),
+    name: i.nombre ?? i.producto?.nombre ?? i.name,
+    quantity: Number(i.cantidad ?? i.quantity ?? 1),
+    unitPrice: Number(i.precioUnitario ?? i.precio ?? i.unitPrice ?? 0),
   })),
 });
 

@@ -41,7 +41,7 @@ export default function CheckoutPage() {
   return (
     <>
       <h2>Método de pago</h2>
-      <Field label="Dirección de entrega"  value={address} onChange={(e) => setAddress(e.target.value)} />
+      <Field label="Dirección de entrega"  value={address} error={errors.address} onChange={(e) => setAddress(e.target.value)} />
       <div className="methods">
         {methods.map((m) => (
           <button key={m.id} type="button" className={`method ${m.id === methodId ? 'method--active' : ''}`} onClick={() => { setMethodId(m.id); setValues({}); setErrors({}); }}>

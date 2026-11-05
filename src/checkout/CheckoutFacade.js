@@ -23,14 +23,17 @@ export class CheckoutFacade {
 
   async placeOrder({ cart, methodId, values, address }) {
     const strategy = this.strategies.create(methodId);
-    const errors = strategy.validate(values);
+    const errors = { ...strategy.validate(values) };
+    if (!address?.trim()) {
+      errors.address = 'Ingresa la dirección de entrega';
+    }
     if (Object.keys(errors).length > 0) throw new ValidationError(errors);
 
     const request = new OrderBuilder()
       .fromCart(cart)
       .withDonation(this.donationPercentage)
       .withPayment(strategy.toPayload(values))
-      .deliverTo(address)
+      .deliverTo(address.trim())
       .build();
 
     return this.orders.create(request);

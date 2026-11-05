@@ -5,6 +5,7 @@ import Field from '../components/ui/Field';
 import { useAuth } from '../context/AuthContext';
 import { useServices } from '../context/ServicesContext';
 import { validateProfile, BIO_MAX } from '../utils/validators';
+import { useCart } from '../cart/CartContext';
 
 const pick = (u) => ({ name: u.name ?? '', address: u.address ?? '', bio: u.bio ?? '' });
 
@@ -18,6 +19,7 @@ export default function ProfilePage() {
   const [serverError, setServerError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const cart = useCart();
 
   const startEdit = () => { setValues(pick(user)); setErrors({}); setServerError(''); setMessage(''); setEditing(true); };
   const cancel = () => { setEditing(false); setErrors({}); setServerError(''); };
@@ -62,7 +64,7 @@ export default function ProfilePage() {
           </dl>
           <div className="row">
             <Button onClick={startEdit}> Editar perfil</Button>
-            <Button variant="secondary" onClick={() => { logout(); navigate('/login'); }}>Cerrar sesión</Button>
+            <Button variant="secondary" onClick={() => { cart.clear(); logout(); navigate('/login'); }}>Cerrar sesión</Button>
           </div>
         </section>
       ) : (

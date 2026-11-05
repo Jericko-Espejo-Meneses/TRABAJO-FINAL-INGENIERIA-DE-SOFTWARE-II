@@ -2,7 +2,7 @@
 // que es la única que conocen los servicios HTTP.
 export class HttpError extends Error {
   constructor(status, body) {
-    super(body?.message ?? `Error HTTP ${status}`);
+    super(body?.message ?? body?.error ?? `Error HTTP ${status}`);
     this.status = status;
     this.body = body;
   }
@@ -20,13 +20,26 @@ export class HttpClient {
       if (Array.isArray(value)) value.forEach((v) => url.searchParams.append(key, v));
       else url.searchParams.set(key, value);
     });
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json', ...headers },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    let res;
+    try{
+      res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch {
+      throw new HttpError(0, { message: 'No se pudo conectar con el servidor. Verifica tu conexión.' });
+    }
+
     const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
+    let data = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text };
+      }
+    }
     if (!res.ok) throw new HttpError(res.status, data);
     return data;
   }
