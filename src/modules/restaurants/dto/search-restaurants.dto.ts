@@ -79,4 +79,36 @@ export class SearchRestaurantsDto {
   @IsOptional()
   @IsString()
   sortBy?: 'rating' | 'deliveryTime' | 'name';
+
+  @ApiPropertyOptional({
+    example: -12.0464,
+    description: 'Latitud del usuario (geolocalización del navegador)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  lat?: number;
+
+  @ApiPropertyOptional({
+    example: -77.0428,
+    description: 'Longitud del usuario (geolocalización del navegador)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  lng?: number;
+
+  @ApiPropertyOptional({
+    example: 5,
+    description: 'Distancia máxima en km desde la ubicación del usuario',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  distanciaMax?: number;
 }
