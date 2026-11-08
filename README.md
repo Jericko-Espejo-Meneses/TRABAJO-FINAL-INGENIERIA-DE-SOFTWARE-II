@@ -7,6 +7,19 @@ npm run dev        # http://localhost:5173
 ```
 Cuenta demo: `demo@healthyexpress.com` / `Demo1234`
 
+## Donación (HE-HU5-005)
+El porcentaje acordado es **3% del total de la compra**, incluido en el pago y sin
+cobro adicional al cliente. Por ejemplo, de una compra de S/ 50 se destinan
+S/ 1.50 a la donación y el cliente paga S/ 50. El monto se redondea a dos decimales.
+La configuración predeterminada y `.env.example` usan `VITE_DONATION_PERCENTAGE=3`,
+igual que el backend. Si existe un `.env` local, debe usar también ese valor.
+
+La confirmación y el historial muestran el monto y beneficiario registrados por
+el backend en `donation: { donationAmount, foundationName, percentage }`.
+Si un pedido antiguo no contiene esos datos, se muestra que el detalle no está
+disponible, sin inventar un monto o beneficiario. El resumen acumula todas las
+donaciones, incluidas las históricas a otras fundaciones.
+
 ## Conectar con el backend
 1. En `.env` pon `VITE_USE_MOCK=false` y `VITE_API_URL=<url de tu API>`.
 2. Reinicia `npm run dev`. No hay que tocar ningún componente.

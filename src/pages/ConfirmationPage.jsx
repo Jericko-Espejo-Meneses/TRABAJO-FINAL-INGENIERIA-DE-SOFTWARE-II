@@ -21,7 +21,9 @@ export default function ConfirmationPage() {
           <h1>¡Pedido realizado con éxito!</h1>
           <p className="muted">Pedido #{data.id} · {data.restaurantName}</p>
           <p>Total: <strong>{formatMoney(data.total)}</strong></p>
-          <p className="donation">💚 Gracias, donaste {formatMoney(data.donation)} al World Food Programme.</p>
+          <p className="donation">{data.donation != null
+            ? `💚 Donación registrada: ${formatMoney(data.donation)}${data.donationFoundation ? ` a ${data.donationFoundation}` : ''}. Sin cobro adicional.`
+            : 'El detalle de la donación todavía no está disponible.'}</p>
           <Link to="/orders" className="btn btn--primary">Ver mis pedidos</Link>{' '}
           <Link to="/home" className="btn btn--secondary">Seguir explorando</Link>
         </div>

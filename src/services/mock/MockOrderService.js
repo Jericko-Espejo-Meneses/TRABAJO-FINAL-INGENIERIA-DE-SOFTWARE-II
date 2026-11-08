@@ -14,6 +14,8 @@ export class MockOrderService extends OrderService {
       createdAt: new Date().toISOString(),
       subtotal: req.subtotal,
       donation: req.donationAmount,
+      donationFoundation: 'World Food Programme (WFP)',
+      donationPercentage: req.donationPercentage,
       total: req.total,
       status: 'confirmed',
       paymentMethod: req.payment.method,

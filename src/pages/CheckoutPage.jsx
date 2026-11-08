@@ -55,7 +55,7 @@ export default function CheckoutPage() {
       ))}
       <div className="summary">
         <div className="row row--between"><span>Total a pagar</span><strong>{formatMoney(summary.total)}</strong></div>
-        <div className="donation">Donación al World Food Programme: {formatMoney(summary.donationAmount)} ({summary.donationPercentage}% de tu pago) — se descuenta automáticamente.</div>
+        <div className="donation">Donación al World Food Programme: {formatMoney(summary.donationAmount)} ({summary.donationPercentage}% de tu pago), incluida sin cobro adicional.</div>
       </div>
       {serverError && <p className="alert">{serverError}</p>}
       <Button block onClick={pay} disabled={busy}>{busy ? 'Procesando pago…' : 'Confirmar pago'}</Button>

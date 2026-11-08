@@ -14,7 +14,7 @@ export default function OrdersPage() {
   return (
     <>
       <h2>Historial de pedidos</h2>
-      {summary.data && <div className="donation">Tu contribución total al World Food Programme: <strong>{formatMoney(summary.data.total)}</strong></div>}
+      {summary.data && <div className="donation">Tu contribución total a donaciones: <strong>{formatMoney(summary.data.total)}</strong></div>}
       <StateView loading={list.loading} error={list.error} empty={list.data?.length === 0} emptyText="Todavía no tienes pedidos.">
         <ul className="list">
           {list.data?.map((o) => (
@@ -26,7 +26,9 @@ export default function OrdersPage() {
               {open === o.id && (
                 <ul className="detail">
                   {o.items.map((i, idx) => <li key={idx}>{i.quantity} × {i.name} — {formatMoney(i.unitPrice * i.quantity)}</li>)}
-                  <li className="muted">Donación WFP: {formatMoney(o.donation)}</li>
+                  <li className="muted">{o.donation != null
+                    ? `Donación${o.donationFoundation ? ` a ${o.donationFoundation}` : ''}: ${formatMoney(o.donation)}`
+                    : 'Detalle de donación no disponible'}</li>
                 </ul>
               )}
             </li>

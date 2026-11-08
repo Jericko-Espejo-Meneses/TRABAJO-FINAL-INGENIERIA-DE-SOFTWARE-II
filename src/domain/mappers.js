@@ -51,7 +51,12 @@ export const toOrder = (d) => ({
     'Restaurante',
   createdAt: d.fecha ?? d.createdAt ?? new Date().toISOString(),
   subtotal: Number(d.subtotal ?? d.total ?? 0),
-  donation: Number(d.montoDonacion ?? d.donation ?? 0),
+  donation: d.montoDonacion != null ? Number(d.montoDonacion)
+    : typeof d.donation === 'object' && d.donation !== null
+      ? Number(d.donation.donationAmount ?? d.donation.amount ?? 0)
+      : d.donation != null ? Number(d.donation) : null,
+  donationFoundation: d.donation?.foundationName ?? d.donation?.foundation?.name ?? d.donationFoundation ?? null,
+  donationPercentage: d.donation?.percentage ?? d.porcentajeDonacion ?? null,
   total: Number(d.total ?? 0),
   status: d.estado ?? d.status ?? 'confirmed',
   paymentMethod: d.pago?.metodoPago ?? d.metodoPago ?? d.paymentMethod,
