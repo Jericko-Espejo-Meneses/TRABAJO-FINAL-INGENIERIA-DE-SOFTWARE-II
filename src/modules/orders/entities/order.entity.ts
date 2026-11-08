@@ -1,4 +1,5 @@
 import { CartItem } from '../../cart/entities/cart-item.entity';
+import { Donation } from '../../donations/entities/donation.entity';
 import { NutritionalInfo } from '../../menus/entities/menu-item.entity';
 
 export enum OrderStatus {
@@ -51,6 +52,7 @@ export class Order {
   status: OrderStatus;
   paymentId?: string;
   donationId?: string;
+  donation?: Donation;
   tracking: OrderTracking;
   createdAt: Date;
   updatedAt: Date;

@@ -39,7 +39,7 @@ export class OrdersService implements OnModuleInit {
         include: {
           items: true,
           tracking: true,
-          donation: true,
+          donation: { include: { foundation: true } },
           payment: true,
         },
       });
@@ -118,7 +118,14 @@ export class OrdersService implements OnModuleInit {
       contactPhone: dbo.contactPhone,
       status: dbo.status as OrderStatus,
       tracking,
-      donationId: dbo.donationId || undefined,
+      donationId: dbo.donation?.id || dbo.donationId || undefined,
+      donation: dbo.donation ? {
+        id: dbo.donation.id, orderId: dbo.id, userId: dbo.userId,
+        foundationId: dbo.donation.foundationId, foundationName: dbo.donation.foundation.name,
+        orderTotal: dbo.donation.orderTotal, percentage: dbo.donation.percentage,
+        donationAmount: dbo.donation.amount, mealsEquivalent: dbo.donation.mealsEquivalent,
+        createdAt: dbo.donation.createdAt,
+      } : undefined,
       createdAt: dbo.createdAt,
       updatedAt: dbo.updatedAt,
     };
@@ -231,6 +238,7 @@ export class OrdersService implements OnModuleInit {
       this.logger.log(`💾 Pedido #${order.id} persistido exitosamente en PostgreSQL (Supabase)`);
     } catch (err: any) {
       this.logger.error(`Error persistiendo pedido en Supabase: ${err.message}`);
+      throw err;
     }
   }
 
@@ -452,12 +460,13 @@ export class OrdersService implements OnModuleInit {
     // Donación automática vinculada (HE-HU5-005)
     const donation = await this.donationsService.processAutomaticDonation(order);
     order.donationId = donation.id;
+    order.donation = donation;
 
     // Crear notificación (HE-HU7-007)
     await this.notificationsService.createNotification(
       userId,
       `🎉 ¡Pedido #${order.id} confirmado!`,
-      `Tu pedido en ${order.restaurantName} ha sido confirmado. Se donaron S/ ${donation.donationAmount} al Banco de Alimentos.`,
+      `Tu pedido en ${order.restaurantName} ha sido confirmado. Se donaron S/ ${donation.donationAmount.toFixed(2)} a ${donation.foundationName}.`,
       'ORDER_UPDATE',
       { orderId: order.id },
     );
@@ -477,7 +486,7 @@ export class OrdersService implements OnModuleInit {
           include: {
             items: true,
             tracking: true,
-            donation: true,
+            donation: { include: { foundation: true } },
             payment: true,
           },
           orderBy: { createdAt: 'desc' },
@@ -498,6 +507,7 @@ export class OrdersService implements OnModuleInit {
 
     return Array.from(this.db.orders.values())
       .filter((o) => o.userId === userId)
+      .map((o) => ({ ...o, donation: o.donation ?? (o.donationId ? this.db.donations.get(o.donationId) : undefined) }))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
@@ -514,7 +524,7 @@ export class OrdersService implements OnModuleInit {
           include: {
             items: true,
             tracking: true,
-            donation: true,
+            donation: { include: { foundation: true } },
             payment: true,
           },
         });

@@ -13,6 +13,7 @@ describe('OrdersService (Sprint 4: HE-HU8-008 & Sprint 5: HE-HU6-006 & Sprint 7:
   let service: OrdersService;
   let cartService: CartService;
   let db: DatabaseService;
+  let prisma: any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -38,6 +39,7 @@ describe('OrdersService (Sprint 4: HE-HU8-008 & Sprint 5: HE-HU6-006 & Sprint 7:
     service = module.get<OrdersService>(OrdersService);
     cartService = module.get<CartService>(CartService);
     db = module.get<DatabaseService>(DatabaseService);
+    prisma = module.get(PrismaService);
     await db.onModuleInit();
   });
 
@@ -122,5 +124,24 @@ describe('OrdersService (Sprint 4: HE-HU8-008 & Sprint 5: HE-HU6-006 & Sprint 7:
     expect(direct.id).toContain('HE-');
     expect(direct.status).toBe(OrderStatus.CONFIRMED);
     expect(direct.donationId).toBeDefined();
+    expect(direct.donation).toMatchObject({ donationAmount: 1.85, percentage: 3, foundationName: 'World Food Programme (WFP)' });
+    const history = await service.getOrderHistory('direct-user');
+    expect(history[0].donation).toEqual(direct.donation);
+  });
+
+  it('recupera la donación persistida con su beneficiario histórico', async () => {
+    prisma.connected = true;
+    prisma.order.findMany.mockResolvedValue([{
+      id: 'saved-order', userId: 'saved-user', total: 50, items: [],
+      donation: { id: 'saved-donation', foundationId: 'found-1', amount: 2.5,
+        percentage: 5, orderTotal: 50, mealsEquivalent: 1, createdAt: new Date(),
+        foundation: { name: 'Banco de Alimentos Perú' } },
+    }]);
+    const [order] = await service.getOrderHistory('saved-user');
+    expect(prisma.order.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      include: expect.objectContaining({ donation: { include: { foundation: true } } }),
+    }));
+    expect(order.donationId).toBe('saved-donation');
+    expect(order.donation).toMatchObject({ donationAmount: 2.5, percentage: 5, foundationName: 'Banco de Alimentos Perú' });
   });
 });

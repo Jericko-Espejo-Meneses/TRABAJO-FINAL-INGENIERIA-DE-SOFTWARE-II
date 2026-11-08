@@ -271,7 +271,7 @@ model Donation {
   foundationId    String
   foundation      Foundation @relation(fields: [foundationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   amount          Float
-  percentage      Float      @default(5.0)
+  percentage      Float      @default(3.0)
   orderTotal      Float
   mealsEquivalent Int        @default(1)
   status          String     @default("COMPLETED")

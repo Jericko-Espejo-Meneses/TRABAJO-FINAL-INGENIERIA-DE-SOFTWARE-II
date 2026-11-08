@@ -531,6 +531,14 @@ export class DatabaseService implements OnModuleInit {
     // 4. Seed Foundations for Automatic Donation (Sprint 4: HE-HU5-005)
     const foundationsList: Foundation[] = [
       {
+        id: 'found-wfp',
+        name: 'World Food Programme (WFP)',
+        cause: 'Lucha contra el hambre',
+        description: 'Programa Mundial de Alimentos de las Naciones Unidas.',
+        logoUrl: '',
+        totalRaised: 0,
+      },
+      {
         id: 'found-1',
         name: 'Banco de Alimentos Perú',
         cause: 'Rescate de alimentos y lucha contra la desnutrición infantil',

@@ -74,7 +74,7 @@ describe('PaymentsService (Sprint 4: HE-HU9-009 & HE-HU5-005)', () => {
     // Donación automática
     expect(result.donation).toBeDefined();
     expect(result.donation.donationAmount).toBeGreaterThan(0);
-    expect(result.donation.foundationName).toBe('Banco de Alimentos Perú');
+    expect(result.donation.foundationName).toBe('World Food Programme (WFP)');
   });
 
   it('HE-HU9-009: debe procesar el pago con billetera digital Yape', async () => {

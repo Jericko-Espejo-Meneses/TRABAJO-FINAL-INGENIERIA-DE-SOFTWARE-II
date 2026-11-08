@@ -368,10 +368,10 @@ async function main() {
         create: {
           userId: demoUser.id,
           foundationId: 'found-wfp',
-          amount: 3.08,
-          percentage: 5.0,
+          amount: 1.85,
+          percentage: 3.0,
           orderTotal: 61.5,
-          mealsEquivalent: 1,
+          mealsEquivalent: 0,
           status: 'COMPLETED',
         },
       },

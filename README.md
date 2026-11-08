@@ -1,5 +1,21 @@
 # HealthExpress — Backend API (NestJS)
 
+## Donación integrada (HE-HU5-005)
+
+Los pedidos nuevos destinan el **3%** del total a **World Food Programme (WFP)**
+por defecto, sin cobro adicional. La creación y consulta de pedidos incluyen
+`donation: { donationAmount, foundationName, percentage, ... }`; el frontend
+muestra estos valores registrados, sin recalcular donaciones históricas.
+
+Con PostgreSQL conectado, la donación se guarda en la tabla `donations` vinculada
+al pedido y el resumen se consulta desde esa tabla. Sin conexión, se utiliza
+el almacén en memoria de la demo. Las donaciones históricas mantienen su
+beneficiario y porcentaje originales. Las raciones se guardan como unidades
+completas (S/ 2.50 por ración), de acuerdo con el campo entero del esquema.
+
+Esta integración registra donaciones en la aplicación; no ejecuta transferencias
+de dinero a WFP. El modo simulado del frontend tampoco llama al backend.
+
 Plataforma backend completa desarrollada con **NestJS** y **TypeScript** para **HealthExpress**, basada en el 100% del Product Road Map oficial (Sprints 1 al 8).
 
 ---

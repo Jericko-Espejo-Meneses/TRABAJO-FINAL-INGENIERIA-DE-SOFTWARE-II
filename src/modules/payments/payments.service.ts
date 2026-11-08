@@ -90,6 +90,7 @@ export class PaymentsService {
       dto.preferredFoundationId,
     );
     order.donationId = donation.id;
+    order.donation = donation;
     order.updatedAt = new Date();
     this.db.orders.set(order.id, order);
 
