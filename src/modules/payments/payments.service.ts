@@ -2,9 +2,11 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
-import { Payment } from './entities/payment.entity';
+import { PrismaService } from '../../prisma/prisma.service';
+import { Payment, PaymentMethodType, PaymentStatusType } from './entities/payment.entity';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
 import { OrderStatus } from '../orders/entities/order.entity';
 import { DonationsService } from '../donations/donations.service';
@@ -14,8 +16,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     private readonly db: DatabaseService,
+    private readonly prisma: PrismaService,
     private readonly donationsService: DonationsService,
     private readonly notificationsService: NotificationsService,
     private readonly achievementsService: AchievementsService,
@@ -26,7 +31,65 @@ export class PaymentsService {
    * HE-HU5-005: Donación automática del 3% vinculada al pago exitoso
    */
   async processPayment(userId: string, dto: ProcessPaymentDto) {
-    const order = this.db.orders.get(dto.orderId);
+    let order = this.db.orders.get(dto.orderId);
+    if (!order && this.prisma.connected) {
+      try {
+        const dbOrder = await this.prisma.order.findUnique({
+          where: { id: dto.orderId },
+          include: { tracking: true },
+        });
+        if (dbOrder) {
+          let timeline: any[] = [];
+          try {
+            timeline = dbOrder.tracking?.timeline ? JSON.parse(dbOrder.tracking.timeline) : [];
+          } catch {
+            timeline = [];
+          }
+          order = {
+            id: dbOrder.id,
+            userId: dbOrder.userId,
+            restaurantId: dbOrder.restaurantId,
+            restaurantName: dbOrder.restaurantName,
+            items: [],
+            subtotal: dbOrder.subtotal,
+            deliveryFee: dbOrder.deliveryFee,
+            total: dbOrder.total,
+            totalNutrition: {
+              calories: dbOrder.totalCalories ?? 0,
+              proteinGrams: dbOrder.totalProtein ?? 0,
+              carbsGrams: dbOrder.totalCarbs ?? 0,
+              fatGrams: dbOrder.totalFat ?? 0,
+              fiberGrams: 0,
+            },
+            deliveryAddress: { street: dbOrder.deliveryAddress, city: 'Lima' },
+            contactPhone: dbOrder.contactPhone || undefined,
+            status: dbOrder.status as OrderStatus,
+            tracking: {
+              currentStatus: (dbOrder.tracking?.currentStatus as OrderStatus) || (dbOrder.status as OrderStatus),
+              progressPercentage: dbOrder.tracking?.progressPercentage ?? 30,
+              estimatedDeliveryTimeMinutes: dbOrder.tracking?.estimatedDeliveryMinutes ?? 30,
+              driverName: dbOrder.tracking?.driverName || 'Jorge Ramírez',
+              driverPhone: dbOrder.tracking?.driverPhone || '+51 981 123 456',
+              vehiclePlate: dbOrder.tracking?.vehiclePlate || 'MOT-7821',
+              currentCoordinates: {
+                lat: dbOrder.tracking?.latitude ?? -12.112,
+                lng: dbOrder.tracking?.longitude ?? -76.994,
+              },
+              timeline: timeline.map((t: any) => ({
+                ...t,
+                timestamp: new Date(t.timestamp),
+              })),
+            },
+            createdAt: dbOrder.createdAt,
+            updatedAt: dbOrder.updatedAt,
+          };
+          this.db.orders.set(order.id, order);
+        }
+      } catch {
+        // fallback
+      }
+    }
+
     if (!order) {
       throw new NotFoundException(`Pedido con ID "${dto.orderId}" no encontrado`);
     }
@@ -71,17 +134,73 @@ export class PaymentsService {
 
     this.db.payments.set(payment.id, payment);
 
+    // Persistir pago en PostgreSQL (Supabase) y actualizar orden
+    if (this.prisma.connected) {
+      try {
+        const details = JSON.stringify({
+          cardLast4: payment.cardLast4,
+          cardBrand: payment.cardBrand,
+          digitalWalletPhone: payment.digitalWalletPhone,
+          receiptNumber: payment.receiptNumber,
+        });
+
+        await this.prisma.payment.upsert({
+          where: { orderId: order.id },
+          update: {
+            status: payment.status,
+            method: payment.paymentMethod,
+            amount: payment.amount,
+            currency: 'PEN',
+            details,
+            transactionReference: payment.transactionReference,
+          },
+          create: {
+            id: payment.id,
+            orderId: order.id,
+            userId: payment.userId,
+            amount: payment.amount,
+            currency: 'PEN',
+            status: payment.status,
+            method: payment.paymentMethod,
+            details,
+            transactionReference: payment.transactionReference,
+          },
+        });
+
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: OrderStatus.CONFIRMED,
+          },
+        }).catch(() => {});
+
+        if (order.tracking) {
+          await this.prisma.orderTracking.update({
+            where: { orderId: order.id },
+            data: {
+              currentStatus: OrderStatus.CONFIRMED,
+              progressPercentage: 30,
+            },
+          }).catch(() => {});
+        }
+      } catch (err: any) {
+        this.logger.warn(`No se pudo persistir el pago en PostgreSQL (Supabase): ${err.message}`);
+      }
+    }
+
     // 1. Actualizar estado del pedido a CONFIRMED
     order.status = OrderStatus.CONFIRMED;
     order.paymentId = payment.id;
-    order.tracking.currentStatus = OrderStatus.CONFIRMED;
-    order.tracking.progressPercentage = 30;
+    if (order.tracking) {
+      order.tracking.currentStatus = OrderStatus.CONFIRMED;
+      order.tracking.progressPercentage = 30;
 
-    // Actualizar timeline
-    const confirmedStep = order.tracking.timeline.find((s) => s.status === OrderStatus.CONFIRMED);
-    if (confirmedStep) {
-      confirmedStep.completed = true;
-      confirmedStep.timestamp = new Date();
+      // Actualizar timeline
+      const confirmedStep = order.tracking.timeline?.find((s) => s.status === OrderStatus.CONFIRMED);
+      if (confirmedStep) {
+        confirmedStep.completed = true;
+        confirmedStep.timestamp = new Date();
+      }
     }
 
     // 2. HE-HU5-005: Generar la donación automática
@@ -135,6 +254,24 @@ export class PaymentsService {
   }
 
   async getPaymentByOrder(orderId: string, userId: string): Promise<Payment> {
+    // Intentar leer desde PostgreSQL primero si Prisma está disponible
+    if (this.prisma.connected) {
+      try {
+        const dbPayment = await this.prisma.payment.findFirst({
+          where: { orderId, userId },
+        });
+
+        if (dbPayment) {
+          const payment = this.mapDbPaymentToEntity(dbPayment);
+          this.db.payments.set(payment.id, payment);
+          return payment;
+        }
+      } catch (err: any) {
+        this.logger.warn(`No se pudo consultar comprobante en PostgreSQL: ${err.message}`);
+      }
+    }
+
+    // Fallback al almacén en memoria
     const payment = Array.from(this.db.payments.values()).find(
       (p) => p.orderId === orderId && p.userId === userId,
     );
@@ -142,5 +279,42 @@ export class PaymentsService {
       throw new NotFoundException(`Comprobante de pago para la orden "${orderId}" no encontrado`);
     }
     return payment;
+  }
+
+  private mapDbPaymentToEntity(dbPayment: any): Payment {
+    let details: Record<string, any> = {};
+    if (dbPayment.details) {
+      try {
+        details = typeof dbPayment.details === 'string'
+          ? JSON.parse(dbPayment.details)
+          : dbPayment.details;
+      } catch {
+        details = {};
+      }
+    }
+
+    let status: PaymentStatusType = 'APPROVED';
+    if (dbPayment.status === 'REJECTED') {
+      status = 'REJECTED';
+    } else if (dbPayment.status === 'PENDING') {
+      status = 'PENDING';
+    } else {
+      status = 'APPROVED';
+    }
+
+    return {
+      id: dbPayment.id,
+      orderId: dbPayment.orderId,
+      userId: dbPayment.userId,
+      amount: dbPayment.amount,
+      paymentMethod: (dbPayment.method as PaymentMethodType) || 'credit_card',
+      status,
+      cardLast4: details.cardLast4,
+      cardBrand: details.cardBrand,
+      digitalWalletPhone: details.digitalWalletPhone,
+      transactionReference: dbPayment.transactionReference || '',
+      receiptNumber: details.receiptNumber || `REC-${new Date(dbPayment.createdAt).getFullYear()}${String(Date.now()).slice(-6)}`,
+      processedAt: dbPayment.createdAt ? new Date(dbPayment.createdAt) : new Date(),
+    };
   }
 }

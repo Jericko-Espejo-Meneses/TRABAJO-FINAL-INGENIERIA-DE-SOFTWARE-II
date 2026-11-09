@@ -132,14 +132,48 @@ export class DonationsService {
   }
 
   async getFoundations(): Promise<Foundation[]> {
+    if (this.prisma?.connected) {
+      try {
+        const rows = await this.prisma.foundation.findMany({ where: { isActive: true } });
+        if (rows.length > 0) {
+          return rows.map((f: any) => ({
+            id: f.id,
+            name: f.name,
+            cause: f.mission || f.description,
+            description: f.description,
+            logoUrl: f.logoUrl,
+            totalRaised: 0,
+          }));
+        }
+      } catch {
+        // fallback
+      }
+    }
     return Array.from(this.db.foundations.values());
   }
 
   async getFoundationById(id: string): Promise<Foundation> {
     const f = this.db.foundations.get(id);
-    if (!f) {
-      throw new NotFoundException(`Fundación con ID ${id} no encontrada`);
+    if (f) return f;
+
+    if (this.prisma?.connected) {
+      try {
+        const row = await this.prisma.foundation.findUnique({ where: { id } });
+        if (row) {
+          return {
+            id: row.id,
+            name: row.name,
+            cause: row.mission || row.description,
+            description: row.description,
+            logoUrl: row.logoUrl,
+            totalRaised: 0,
+          };
+        }
+      } catch {
+        // fallback
+      }
     }
-    return f;
+
+    throw new NotFoundException(`Fundación con ID ${id} no encontrada`);
   }
 }
