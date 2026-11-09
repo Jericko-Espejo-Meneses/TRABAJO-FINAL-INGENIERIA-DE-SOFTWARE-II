@@ -1,0 +1,150 @@
+{
+  "mode": "Frontend VITE_USE_MOCK=false, backend HTTP real, datos QA en memoria; sin Supabase",
+  "results": [
+    {
+      "name": "Sin límite",
+      "query": "lat=-12.1211&lng=-77.0297",
+      "status": 200,
+      "results": [
+        {
+          "id": "rest-1",
+          "name": "QA GreenBowl Healthy Bar",
+          "distanceKm": 0.5
+        },
+        {
+          "id": "rest-4",
+          "name": "QA PureJuice & Smoothies Lab",
+          "distanceKm": 0.8
+        },
+        {
+          "id": "rest-2",
+          "name": "QA NutriVida Fit Kitchen",
+          "distanceKm": 1.5
+        },
+        {
+          "id": "rest-3",
+          "name": "QA SanaTentación Veggie Bistro",
+          "distanceKm": 2.5
+        }
+      ]
+    },
+    {
+      "name": "Radio 1 km",
+      "query": "lat=-12.1211&lng=-77.0297&distanciaMax=1",
+      "status": 200,
+      "results": [
+        {
+          "id": "rest-1",
+          "name": "QA GreenBowl Healthy Bar",
+          "distanceKm": 0.5
+        },
+        {
+          "id": "rest-4",
+          "name": "QA PureJuice & Smoothies Lab",
+          "distanceKm": 0.8
+        }
+      ]
+    },
+    {
+      "name": "Cerca de mí + radio 3 km",
+      "query": "lat=-12.1211&lng=-77.0297&distanciaMax=3&tags=nearby",
+      "status": 200,
+      "results": [
+        {
+          "id": "rest-1",
+          "name": "QA GreenBowl Healthy Bar",
+          "distanceKm": 0.5
+        },
+        {
+          "id": "rest-4",
+          "name": "QA PureJuice & Smoothies Lab",
+          "distanceKm": 0.8
+        },
+        {
+          "id": "rest-2",
+          "name": "QA NutriVida Fit Kitchen",
+          "distanceKm": 1.5
+        }
+      ]
+    },
+    {
+      "name": "Vegano + económico + proteína + ensaladas + 1 km",
+      "query": "lat=-12.1211&lng=-77.0297&distanciaMax=1&tags=vegan&tags=cheap&tags=high-protein&tipoComida=Ensaladas",
+      "status": 200,
+      "results": [
+        {
+          "id": "rest-1",
+          "name": "QA GreenBowl Healthy Bar",
+          "distanceKm": 0.5
+        }
+      ]
+    },
+    {
+      "name": "Bajo en calorías + vegano, separados por coma",
+      "query": "lat=-12.1211&lng=-77.0297&tags=low-calorie,vegan",
+      "status": 200,
+      "results": [
+        {
+          "id": "rest-1",
+          "name": "QA GreenBowl Healthy Bar",
+          "distanceKm": 0.5
+        },
+        {
+          "id": "rest-4",
+          "name": "QA PureJuice & Smoothies Lab",
+          "distanceKm": 0.8
+        }
+      ]
+    },
+    {
+      "name": "Vegana + cerca de mí sin coincidencias",
+      "query": "lat=-12.1211&lng=-77.0297&tags=nearby&tipoComida=Vegana",
+      "status": 200,
+      "results": []
+    },
+    {
+      "name": "Distancia sin coordenadas",
+      "query": "distanciaMax=1",
+      "status": 400,
+      "results": {
+        "message": "La distancia máxima y Cerca de mí requieren lat y lng.",
+        "error": "Bad Request",
+        "statusCode": 400
+      }
+    },
+    {
+      "name": "Latitud inválida",
+      "query": "lat=91&lng=0",
+      "status": 400,
+      "results": {
+        "message": [
+          "lat must not be greater than 90"
+        ],
+        "error": "Bad Request",
+        "statusCode": 400
+      }
+    },
+    {
+      "name": "Distancia negativa",
+      "query": "lat=-12.1211&lng=-77.0297&distanciaMax=-1",
+      "status": 400,
+      "results": {
+        "message": [
+          "distanciaMax must not be less than 0"
+        ],
+        "error": "Bad Request",
+        "statusCode": 400
+      }
+    },
+    {
+      "name": "Solo una coordenada",
+      "query": "lat=0",
+      "status": 400,
+      "results": {
+        "message": "Debes enviar lat y lng juntos.",
+        "error": "Bad Request",
+        "statusCode": 400
+      }
+    }
+  ]
+}

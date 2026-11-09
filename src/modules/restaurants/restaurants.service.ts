@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Restaurant } from './entities/restaurant.entity';
@@ -44,6 +44,8 @@ export class RestaurantsService {
       category: dbr.foodType || 'Saludable',
       dietaryTags: Array.isArray(dietaryTags) ? dietaryTags : [],
       address: dbr.address,
+      latitude: dbr.latitude,
+      longitude: dbr.longitude,
       phone: dbr.phone,
       isHealthyCertified: dbr.isHealthyCertified ?? (dbr.isActive ?? true),
       isOpen: dbr.isOpen ?? (dbr.isActive ?? true),
@@ -124,12 +126,14 @@ export class RestaurantsService {
    */
   async search(dto: SearchRestaurantsDto): Promise<Restaurant[]> {
     let results: Restaurant[] = [];
+    let loadedFromDatabase = false;
 
     // 1. Intentar consultar PostgreSQL si Prisma está conectado
     if (this.prisma?.connected) {
       try {
         const dbRestaurants = await this.prisma.restaurant.findMany();
-        if (dbRestaurants && dbRestaurants.length > 0) {
+        if (dbRestaurants) {
+          loadedFromDatabase = true;
           results = dbRestaurants.map((r) => {
             const entity = this.mapDbRestaurantToEntity(r);
             this.db.restaurants.set(entity.id, entity);
@@ -143,38 +147,76 @@ export class RestaurantsService {
     }
 
     // 2. Si no hay conexión o no hubo resultados, usar almacén en memoria
-    if (results.length === 0) {
+    if (!loadedFromDatabase) {
       results = Array.from(this.db.restaurants.values());
     }
 
     const searchQuery = dto.query || dto.q;
     const categoryQuery = dto.category || dto.tipoComida;
-    const tagQuery = dto.dietaryTag || (Array.isArray(dto.tags) ? dto.tags[0] : dto.tags);
+    const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const canonicalTag = (value: string) => {
+      const tag = normalize(value).replace(/[-_\s]+/g, ' ');
+      const aliases: Record<string, string> = {
+        vegan: 'vegano', 'low calorie': 'bajo en calorias',
+        'high protein': 'alto en proteina', 'low fat': 'bajo en grasa',
+      };
+      return aliases[tag] ?? tag;
+    };
+    const tags = [...new Set([dto.dietaryTag, ...[dto.tags].flat()]
+      .filter((tag): tag is string => typeof tag === 'string')
+      .flatMap((tag) => tag.split(','))
+      .map(canonicalTag).filter(Boolean))];
+    const hasCoords = dto.lat !== undefined && dto.lng !== undefined;
+    if ((dto.lat !== undefined || dto.lng !== undefined) && !hasCoords) {
+      throw new BadRequestException('Debes enviar lat y lng juntos.');
+    }
+    if ((dto.distanciaMax !== undefined || tags.includes('nearby')) && !hasCoords) {
+      throw new BadRequestException('La distancia máxima y Cerca de mí requieren lat y lng.');
+    }
+    // Distancia geográfica en km (Haversine). Nunca reutilizar distancias de otra búsqueda.
+    results = results.map((restaurant) => {
+      let distanceKm: number | null = null;
+      const { latitude, longitude } = restaurant;
+      if (hasCoords && Number.isFinite(latitude) && Number.isFinite(longitude)
+        && Math.abs(latitude!) <= 90 && Math.abs(longitude!) <= 180) {
+        const rad = (degrees: number) => degrees * Math.PI / 180;
+        const a = Math.sin(rad(latitude! - dto.lat!) / 2) ** 2
+          + Math.cos(rad(dto.lat!)) * Math.cos(rad(latitude!))
+          * Math.sin(rad(longitude! - dto.lng!) / 2) ** 2;
+        distanceKm = 6371 * 2 * Math.asin(Math.sqrt(Math.min(1, Math.max(0, a))));
+      }
+      return { ...restaurant, distanceKm };
+    });
+    const maxDistance = tags.includes('nearby') ? Math.min(dto.distanciaMax ?? Infinity, 2) : dto.distanciaMax;
+    if (maxDistance !== undefined) {
+      results = results.filter((r) => r.distanceKm != null && r.distanceKm <= maxDistance);
+    }
 
     // 1. Filtrar por término de búsqueda (nombre, descripción, categoría)
     if (searchQuery) {
-      const q = searchQuery.toLowerCase().trim();
+      const q = normalize(searchQuery);
       results = results.filter(
         (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.description.toLowerCase().includes(q) ||
-          r.category.toLowerCase().includes(q) ||
-          r.dietaryTags.some((tag) => tag.toLowerCase().includes(q)),
+          normalize(r.name).includes(q) ||
+          normalize(r.description).includes(q) ||
+          normalize(r.category).includes(q) ||
+          r.dietaryTags.some((tag) => normalize(tag).includes(q)),
       );
     }
 
     // 2. Filtrar por categoría
     if (categoryQuery) {
-      const cat = categoryQuery.toLowerCase().trim();
-      results = results.filter((r) => r.category.toLowerCase().includes(cat));
+      const cat = normalize(categoryQuery);
+      results = results.filter((r) => normalize(r.category).includes(cat));
     }
 
     // 3. Filtrar por etiqueta dietética saludable (vegano, keto, sin gluten, etc.)
-    if (tagQuery) {
-      const tq = String(tagQuery).toLowerCase().trim();
-      results = results.filter((r) =>
-        r.dietaryTags.some((t) => t.toLowerCase().includes(tq)),
-      );
+    if (tags.length) {
+      results = results.filter((r) => tags.every((tag) => {
+        if (tag === 'nearby') return true; // Ya aplicado con el límite más restrictivo.
+        if (tag === 'cheap') return r.priceLevel === '$';
+        return r.dietaryTags.some((t) => canonicalTag(t) === tag);
+      }));
     }
 
     // 4. Filtrar por calificación mínima
@@ -202,31 +244,12 @@ export class RestaurantsService {
       results.sort((a, b) => b.rating - a.rating);
     }
 
-    return results;
+    // Redondear solo para mostrar; el límite se aplica a la distancia exacta.
+    return results.map((r) => ({ ...r, distanceKm: r.distanceKm == null ? null : Math.round(r.distanceKm * 100) / 100 }));
   }
 
-  async findAll(queryDto?: SearchRestaurantsDto): Promise<Restaurant[]> {
-    if (queryDto && (queryDto.query || queryDto.q || queryDto.category || queryDto.tipoComida || queryDto.dietaryTag || queryDto.tags)) {
-      return this.search(queryDto);
-    }
-
-    // Intentar consultar PostgreSQL si Prisma está conectado
-    if (this.prisma?.connected) {
-      try {
-        const dbRestaurants = await this.prisma.restaurant.findMany();
-        if (dbRestaurants && dbRestaurants.length > 0) {
-          return dbRestaurants.map((r) => {
-            const entity = this.mapDbRestaurantToEntity(r);
-            this.db.restaurants.set(entity.id, entity);
-            return entity;
-          });
-        }
-      } catch {
-        // Fallback a memoria
-      }
-    }
-
-    return Array.from(this.db.restaurants.values());
+  async findAll(queryDto: SearchRestaurantsDto = {}): Promise<Restaurant[]> {
+    return this.search(queryDto);
   }
 
   async findById(id: string): Promise<Restaurant & { menu: any[] }> {
