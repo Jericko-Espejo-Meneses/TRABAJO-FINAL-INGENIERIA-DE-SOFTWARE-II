@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber, Min, Max, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, Max, IsBoolean, IsArray } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export class SearchRestaurantsDto {
@@ -37,9 +37,12 @@ export class SearchRestaurantsDto {
   @IsString()
   dietaryTag?: string;
 
-  @ApiPropertyOptional({ description: 'Alias para dietaryTag' })
+  @ApiPropertyOptional({ description: 'Filtros combinados con AND. Acepta tags repetidos o separados por comas.', type: [String] })
   @IsOptional()
-  tags?: any;
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[] | string;
 
   @ApiPropertyOptional({
     example: 4.5,
