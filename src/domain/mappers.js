@@ -3,12 +3,13 @@
 // Si el backend cambia nombres, solo se toca este archivo.
 export const toUser = (d) => ({
   id: d.idUsuario ?? d.id,
-  name: d.nombre ?? d.name,
+  name: d.nombre ?? d.fullName ?? d.name,
   email: d.correo ?? d.email,
-  address: d.direccion ?? d.address ?? '',
+  address: d.direccion ?? d.address
+    ?? (d.addresses?.find((a) => a.isDefault) ?? d.addresses?.[0])?.street ?? '',
   phone: d.telefono ?? d.phone ?? '',
   bio: d.biografia ?? d.bio ?? '',
-  preferences: d.preferencias ?? d.preferences ?? [],
+  preferences: d.preferencias ?? d.dietaryPreferences ?? d.preferences ?? [],
 });
 
 export const toDish = (d) => ({
@@ -51,12 +52,15 @@ export const toOrder = (d) => ({
     'Restaurante',
   createdAt: d.fecha ?? d.createdAt ?? new Date().toISOString(),
   subtotal: Number(d.subtotal ?? d.total ?? 0),
+  
   donation: d.montoDonacion != null ? Number(d.montoDonacion)
+    : d.donationAmount != null ? Number(d.donationAmount)
     : typeof d.donation === 'object' && d.donation !== null
       ? Number(d.donation.donationAmount ?? d.donation.amount ?? 0)
       : d.donation != null ? Number(d.donation) : null,
   donationFoundation: d.donation?.foundationName ?? d.donation?.foundation?.name ?? d.donationFoundation ?? null,
   donationPercentage: d.donation?.percentage ?? d.porcentajeDonacion ?? null,
+
   total: Number(d.total ?? 0),
   status: d.estado ?? d.status ?? 'confirmed',
   paymentMethod: d.pago?.metodoPago ?? d.metodoPago ?? d.paymentMethod,
