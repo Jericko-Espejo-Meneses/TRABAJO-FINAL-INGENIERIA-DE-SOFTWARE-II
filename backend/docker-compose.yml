@@ -1,0 +1,56 @@
+services:
+  # =============================================================
+  # PostgreSQL Database Container (Local dev / testing)
+  # =============================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: healthexpress-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Password123!
+      POSTGRES_DB: healthexpress
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d healthexpress']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - healthexpress-net
+
+  # =============================================================
+  # HealthExpress Backend API (NestJS + Prisma)
+  # =============================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: healthexpress-backend
+    restart: always
+    ports:
+      - '3000:3000'
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      JWT_SECRET: healthexpress-super-secure-jwt-secret-key-2026
+      JWT_EXPIRATION: 7d
+      CORS_ORIGIN: http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000
+      DATABASE_URL: postgresql://postgres:Password123!@postgres:5432/healthexpress?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - healthexpress-net
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  healthexpress-net:
+    driver: bridge

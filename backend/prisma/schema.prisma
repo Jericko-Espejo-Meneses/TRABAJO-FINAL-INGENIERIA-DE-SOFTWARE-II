@@ -1,0 +1,350 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+// -------------------------------------------------------------
+// SPRINT 1 & 7: USUARIOS, AUTENTICACIÓN Y PERFIL (HE-HU1-001, HE-HU10-010, HE-HU11-011)
+// -------------------------------------------------------------
+model User {
+  id                 String            @id @default(uuid())
+  email              String            @unique
+  passwordHash       String?
+  fullName           String
+  phone              String?
+  provider           String            @default("email") // email, google, facebook, apple
+  providerId         String?
+  avatarUrl          String?
+  dietaryPreferences String            @default("[]") // JSON string
+  healthGoals        String            @default("[]") // JSON string
+  addresses          Address[]
+  orders             Order[]
+  donations          Donation[]
+  notifications      Notification[]
+  userAchievements   UserAchievement[]
+  favorites          Favorite[]
+  cart               Cart?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@map("users")
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  label     String   @default("Principal")
+  street    String
+  city      String   @default("Lima")
+  reference String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("addresses")
+}
+
+// -------------------------------------------------------------
+// SPRINT 2: RESTAURANTES SALUDABLES Y EXPLORACIÓN (HE-HU2-002)
+// -------------------------------------------------------------
+model Restaurant {
+  id                  String     @id @default(uuid())
+  name                String
+  description         String
+  logoUrl             String
+  bannerUrl           String
+  address             String
+  latitude            Float      @default(-12.097)
+  longitude           Float      @default(-77.034)
+  phone               String     @default("+51 1 456-7890")
+  rating              Float      @default(4.8)
+  totalReviews        Int        @default(0)
+  deliveryTimeMinutes Int        @default(30)
+  deliveryFee         Float      @default(4.5)
+  minimumOrder        Float      @default(20.0)
+  priceLevel          Int        @default(2)
+  dietaryTags         String     @default("[]") // JSON string
+  foodType            String     @default("Saludable")
+  isActive            Boolean    @default(true)
+  menuItems           MenuItem[]
+  orders              Order[]
+  favorites           Favorite[]
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@map("restaurants")
+}
+
+// -------------------------------------------------------------
+// SPRINT 2, 3 Y 8: MENÚS, VALOR NUTRICIONAL Y FICHAS DETALLADAS (HE-HU3-003, HE-HU14-014)
+// -------------------------------------------------------------
+model MenuItem {
+  id              String           @id @default(uuid())
+  restaurantId    String
+  restaurant      Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name            String
+  description     String
+  price           Float
+  imageUrl        String
+  category        String
+  dietaryTags     String           @default("[]") // JSON string
+  stock           Int              @default(50)
+  isAvailable     Boolean          @default(true)
+  nutritionalInfo NutritionalInfo?
+  allergens       String           @default("[]") // JSON string
+  ingredients     String           @default("[]") // JSON string
+  nutriScore      String           @default("A")
+  glycemicIndex   String           @default("Bajo")
+  favorites       Favorite[]
+  orderItems      OrderItem[]
+  cartItems       CartItem[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("menu_items")
+}
+
+model NutritionalInfo {
+  id           String   @id @default(uuid())
+  menuItemId   String   @unique
+  menuItem     MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  calories     Float
+  proteinGrams Float
+  carbsGrams   Float
+  fatGrams     Float
+  fiberGrams   Float?   @default(0)
+  sodiumMg     Float?   @default(0)
+
+  @@map("nutritional_info")
+}
+
+// -------------------------------------------------------------
+// SPRINT 3 Y 4: CARRITO DE COMPRAS CON BALANCE NUTRICIONAL (HE-HU4-004)
+// -------------------------------------------------------------
+model Cart {
+  id           String     @id @default(uuid())
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  restaurantId String?
+  items        CartItem[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("carts")
+}
+
+model CartItem {
+  id           String   @id @default(uuid())
+  cartId       String
+  cart         Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  menuItemId   String
+  menuItem     MenuItem @relation(fields: [menuItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  name         String
+  price        Float
+  quantity     Int      @default(1)
+  calories     Float    @default(0)
+  proteinGrams Float    @default(0)
+  carbsGrams   Float    @default(0)
+  fatGrams     Float    @default(0)
+
+  @@map("cart_items")
+}
+
+// -------------------------------------------------------------
+// SPRINT 4, 5 Y 7: PEDIDOS, HISTORIAL Y SEGUIMIENTO EN TIEMPO REAL (HE-HU8-008, HE-HU6-006, HE-HU13-013)
+// -------------------------------------------------------------
+model Order {
+  id              String         @id
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  restaurantId    String
+  restaurant      Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  restaurantName  String
+  items           OrderItem[]
+  subtotal        Float
+  deliveryFee     Float          @default(4.5)
+  total           Float
+  totalCalories   Float          @default(0)
+  totalProtein    Float          @default(0)
+  totalCarbs      Float          @default(0)
+  totalFat        Float          @default(0)
+  status          String         @default("CONFIRMED")
+  deliveryAddress String
+  contactPhone    String?        @default("+51987654321")
+  donationId      String?        @unique
+  donation        Donation?
+  tracking        OrderTracking?
+  payment         Payment?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String    @id @default(uuid())
+  orderId      String
+  order        Order     @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  menuItemId   String?
+  menuItem     MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  name         String
+  unitPrice    Float
+  quantity     Int       @default(1)
+  lineTotal    Float
+  calories     Float     @default(0)
+  proteinGrams Float     @default(0)
+  carbsGrams   Float     @default(0)
+  fatGrams     Float     @default(0)
+
+  @@map("order_items")
+}
+
+model OrderTracking {
+  id                       String   @id @default(uuid())
+  orderId                  String   @unique
+  order                    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  currentStatus            String   @default("CONFIRMED")
+  progressPercentage       Int      @default(30)
+  estimatedDeliveryMinutes Int      @default(30)
+  driverName               String?  @default("Jorge Ramírez")
+  driverPhone              String?  @default("+51 981 123 456")
+  vehiclePlate             String?  @default("MOT-7821")
+  latitude                 Float?   @default(-12.112)
+  longitude                Float?   @default(-76.994)
+  timeline                 String?  // JSON string
+
+  @@map("order_trackings")
+}
+
+// -------------------------------------------------------------
+// SPRINT 4: PAGOS (HE-HU9-009)
+// -------------------------------------------------------------
+model Payment {
+  id                   String   @id @default(uuid())
+  orderId              String   @unique
+  order                Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userId               String
+  amount               Float
+  currency             String   @default("PEN")
+  status               String   @default("COMPLETED")
+  method               String   // card, yape, plin, cash
+  details              String?  // JSON string
+  transactionReference String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("payments")
+}
+
+// -------------------------------------------------------------
+// SPRINT 4 Y 5: DONACIÓN AUTOMÁTICA E IMPACTO SOCIAL (HE-HU5-005, HE-HU6-006)
+// -------------------------------------------------------------
+model Foundation {
+  id          String     @id
+  name        String
+  description String
+  logoUrl     String
+  website     String?
+  mission     String?
+  category    String     @default("alimentacion")
+  isActive    Boolean    @default(true)
+  donations   Donation[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("foundations")
+}
+
+model Donation {
+  id              String     @id @default(uuid())
+  orderId         String     @unique
+  order           Order      @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  foundationId    String
+  foundation      Foundation @relation(fields: [foundationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  amount          Float
+  percentage      Float      @default(3.0)
+  orderTotal      Float
+  mealsEquivalent Int        @default(1)
+  status          String     @default("COMPLETED")
+  createdAt       DateTime   @default(now())
+
+  @@map("donations")
+}
+
+// -------------------------------------------------------------
+// SPRINT 6: NOTIFICACIONES (HE-HU7-007)
+// -------------------------------------------------------------
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  title     String
+  message   String
+  type      String   // ORDER_UPDATE, PROMOTION, ACHIEVEMENT_UNLOCKED, SOCIAL_IMPACT
+  metadata  String?  // JSON string
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+// -------------------------------------------------------------
+// SPRINT 6: GAMIFICACIÓN Y LOGROS SALUDABLES (HE-HU7-007)
+// -------------------------------------------------------------
+model Achievement {
+  id           String            @id
+  code         String            @unique
+  title        String
+  description  String
+  badgeIconUrl String
+  category     String            // nutrition, orders, donations, exploration
+  targetCount  Int               @default(1)
+  pointsReward Int               @default(100)
+  isHidden     Boolean           @default(false)
+  userProgress UserAchievement[]
+  createdAt    DateTime          @default(now())
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  currentCount  Int         @default(0)
+  targetCount   Int         @default(1)
+  isUnlocked    Boolean     @default(false)
+  unlockedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// -------------------------------------------------------------
+// SPRINT 8: RESTAURANTES Y PLATOS FAVORITOS (HE-HU12-012)
+// -------------------------------------------------------------
+model Favorite {
+  id           String      @id @default(uuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  menuItemId   String?
+  menuItem     MenuItem?   @relation(fields: [menuItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt    DateTime    @default(now())
+
+  @@map("favorites")
+}
