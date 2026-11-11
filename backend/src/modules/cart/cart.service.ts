@@ -63,6 +63,13 @@ export class CartService {
       throw new BadRequestException(`El producto "${menuItem.name}" no está disponible en este momento`);
     }
 
+    const availableStock = menuItem.stock ?? 50;
+    const quantityInCart = (await this.getCart(userId)).items
+      .find((item) => item.menuItemId === dto.menuItemId)?.quantity ?? 0;
+    if (quantityInCart + dto.quantity > availableStock) {
+      throw new BadRequestException(`Stock insuficiente para "${menuItem.name}". Disponible: ${Math.max(0, availableStock - quantityInCart)}.`);
+    }
+
     let cart = await this.getCart(userId);
 
     // Si el carrito ya contiene ítems de otro restaurante, se limpia para el nuevo restaurante
@@ -174,6 +181,12 @@ export class CartService {
 
     if (itemIndex === -1) {
       throw new NotFoundException(`El ítem con ID "${itemId}" no se encuentra en el carrito`);
+    }
+
+    const currentItem = cart.items[itemIndex];
+    const menuItem = this.db.menuItems.get(currentItem.menuItemId);
+    if (dto.quantity !== undefined && dto.quantity > (menuItem?.stock ?? 50)) {
+      throw new BadRequestException(`Stock insuficiente para "${currentItem.name}". Disponible: ${menuItem?.stock ?? 50}.`);
     }
 
     if (dto.quantity !== undefined) {

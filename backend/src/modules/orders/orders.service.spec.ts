@@ -122,11 +122,21 @@ describe('OrdersService (Sprint 4: HE-HU8-008 & Sprint 5: HE-HU6-006 & Sprint 7:
 
     expect(direct).toBeDefined();
     expect(direct.id).toContain('HE-');
-    expect(direct.status).toBe(OrderStatus.CONFIRMED);
-    expect(direct.donationId).toBeDefined();
-    expect(direct.donation).toMatchObject({ donationAmount: 1.85, percentage: 3, foundationName: 'World Food Programme (WFP)' });
+    expect(direct.status).toBe(OrderStatus.PENDING_PAYMENT);
+    expect(direct.donationId).toBeUndefined();
+    expect(direct.donation).toBeUndefined();
     const history = await service.getOrderHistory('direct-user');
-    expect(history[0].donation).toEqual(direct.donation);
+    expect(history[0].status).toBe(OrderStatus.PENDING_PAYMENT);
+  });
+
+  it('rechaza checkout directo vacío y productos cuyo stock es cero', async () => {
+    await expect(service.createDirectOrder('empty-direct-user', { restaurantId: 'rest-1', items: [] }))
+      .rejects.toThrow('al menos un producto');
+    db.menuItems.get('menu-1')!.stock = 0;
+    await expect(service.createDirectOrder('no-stock-user', {
+      restaurantId: 'rest-1',
+      items: [{ menuItemId: 'menu-1', quantity: 1 }],
+    })).rejects.toThrow('Stock insuficiente');
   });
 
   it('recupera la donación persistida con su beneficiario histórico', async () => {

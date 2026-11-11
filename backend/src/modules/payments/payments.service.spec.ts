@@ -98,4 +98,30 @@ describe('PaymentsService (Sprint 4: HE-HU9-009 & HE-HU5-005)', () => {
     expect(result.payment.paymentMethod).toBe('yape');
     expect(result.payment.status).toBe('APPROVED');
   });
+
+  it('mantiene el pedido pendiente tras un rechazo simulado y permite reintentar', async () => {
+    const order = await ordersService.createDirectOrder('retry-user', {
+      restaurantId: 'rest-1',
+      items: [{ menuItemId: 'menu-1', quantity: 1 }],
+      deliveryAddress: 'Av. Primavera 450',
+    });
+    expect(order.status).toBe(OrderStatus.PENDING_PAYMENT);
+    const donationCount = db.donations.size;
+
+    await expect(paymentsService.processPayment('retry-user', {
+      orderId: order.id,
+      paymentMethod: 'credit_card',
+      cardLast4: '0000',
+    })).rejects.toThrow('Pago rechazado por el simulador');
+    expect(order.status).toBe(OrderStatus.PENDING_PAYMENT);
+    expect(db.donations.size).toBe(donationCount);
+
+    const approved = await paymentsService.processPayment('retry-user', {
+      orderId: order.id,
+      paymentMethod: 'credit_card',
+      cardLast4: '4242',
+    });
+    expect(approved.order.status).toBe(OrderStatus.CONFIRMED);
+    expect(approved.donation.donationAmount).toBeGreaterThan(0);
+  });
 });

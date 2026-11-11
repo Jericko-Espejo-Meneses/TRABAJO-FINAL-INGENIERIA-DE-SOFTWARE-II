@@ -45,14 +45,10 @@ export class WalletPayment extends PaymentStrategy {
   toPayload(v) { return { method: this.id, details: { celular: v.phone, codigo: v.code } }; }
 }
 
-export class PayPalPayment extends PaymentStrategy {
+export class CashPayment extends PaymentStrategy {
   constructor() {
-    super({ id: 'paypal', label: 'PayPal', icon: '🅿️', fields: [{ name: 'email', label: 'Correo de PayPal', placeholder: 'tu@correo.com', type: 'email' }] });
+    super({ id: 'cash', label: 'Efectivo contra entrega', icon: '💵', fields: [] });
   }
-  validate(v) {
-    const e = {};
-    check(e, 'email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email ?? ''), 'Correo no válido');
-    return e;
-  }
-  toPayload(v) { return { method: this.id, details: { correo: v.email } }; }
+  validate() { return {}; }
+  toPayload() { return { method: this.id, details: {} }; }
 }
