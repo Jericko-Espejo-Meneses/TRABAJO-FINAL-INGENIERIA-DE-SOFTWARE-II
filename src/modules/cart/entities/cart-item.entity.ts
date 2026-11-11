@@ -5,6 +5,7 @@ export class CartItem {
   menuItemId: string;
   name: string;
   price: number;
+  unitPrice?: number;
   quantity: number;
   imageUrl: string;
   restaurantId: string;

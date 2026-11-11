@@ -144,4 +144,112 @@ describe('OrdersService (Sprint 4: HE-HU8-008 & Sprint 5: HE-HU6-006 & Sprint 7:
     expect(order.donationId).toBe('saved-donation');
     expect(order.donation).toMatchObject({ donationAmount: 2.5, percentage: 5, foundationName: 'Banco de Alimentos Perú' });
   });
+  describe('Validaciones de seguridad y cálculo en backend para pedidos', () => {
+    it('debe rechazar pedido con carrito vacío (items vacío)', async () => {
+      await expect(
+        service.createDirectOrder('user-val-1', {
+          restaurantId: 'rest-1',
+          items: [],
+          deliveryAddress: 'Av. Las Palmas 123',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe rechazar pedido cuando no se envían items ni productos', async () => {
+      await expect(
+        service.createDirectOrder('user-val-1', {
+          restaurantId: 'rest-1',
+          deliveryAddress: 'Av. Las Palmas 123',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe rechazar productos inexistentes en el catálogo', async () => {
+      await expect(
+        service.createDirectOrder('user-val-2', {
+          restaurantId: 'rest-1',
+          items: [{ menuItemId: 'menu-fantasma-999', quantity: 1 }],
+          deliveryAddress: 'Av. Las Palmas 123',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe rechazar cantidades negativas', async () => {
+      await expect(
+        service.createDirectOrder('user-val-3', {
+          restaurantId: 'rest-1',
+          items: [{ menuItemId: 'menu-1', quantity: -3 }],
+          deliveryAddress: 'Av. Las Palmas 123',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe rechazar cantidades cero', async () => {
+      await expect(
+        service.createDirectOrder('user-val-4', {
+          restaurantId: 'rest-1',
+          items: [{ menuItemId: 'menu-1', quantity: 0 }],
+          deliveryAddress: 'Av. Las Palmas 123',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe rechazar cantidades decimales', async () => {
+      await expect(
+        service.createDirectOrder('user-val-5', {
+          restaurantId: 'rest-1',
+          items: [{ menuItemId: 'menu-1', quantity: 1.5 }],
+          deliveryAddress: 'Av. Las Palmas 123',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe recalcular precios, subtotal y total en backend ignorando importes enviados desde el frontend', async () => {
+      // El frontend intenta enviar precio manipulado a S/ 1.00 y total S/ 1.00
+      const order = await service.createDirectOrder('user-tamper', {
+        restaurantId: 'rest-1',
+        items: [{
+          menuItemId: 'menu-1', // precio oficial en catálogo es 28.5
+          quantity: 2,
+          unitPrice: 1.0,
+          precio: 1.0,
+          price: 1.0,
+        }],
+        subtotal: 2.0,
+        deliveryFee: 0.0,
+        total: 2.0,
+        donationAmount: 0.01,
+        deliveryAddress: 'Av. Primavera 123',
+      });
+
+      // El backend debe usar el precio oficial (28.5) y no el manipulado (1.0)
+      expect(order.items[0].price).toBe(28.5);
+      expect(order.items[0].unitPrice).toBe(28.5);
+      expect(order.items[0].lineTotal).toBe(57.0);
+
+      // Subtotal = 2 * 28.5 = 57.0
+      expect(order.subtotal).toBe(57.0);
+
+      // Delivery oficial del restaurante = 4.5
+      expect(order.deliveryFee).toBe(4.5);
+
+      // Total oficial = 57.0 + 4.5 = 61.50
+      expect(order.total).toBe(61.5);
+    });
+
+    it('debe calcular la donación del 3 % estrictamente en el backend', async () => {
+      const order = await service.createDirectOrder('user-donation-check', {
+        restaurantId: 'rest-1',
+        items: [{ menuItemId: 'menu-1', quantity: 2 }], // 57.0 + 4.5 = 61.50
+        deliveryAddress: 'Calle Las Begonias 123',
+      });
+
+      // 61.50 * 0.03 = 1.845 -> redondeado a 1.85
+      expect(order.donationAmount).toBe(1.85);
+      expect(order.donationPercentage).toBe(3);
+      expect(order.donation).toBeDefined();
+      expect(order.donation.donationAmount).toBe(1.85);
+      expect(order.donation.percentage).toBe(3);
+    });
+  });
 });

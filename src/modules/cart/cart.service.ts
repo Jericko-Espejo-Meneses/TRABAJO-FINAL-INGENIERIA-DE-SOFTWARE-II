@@ -54,6 +54,18 @@ export class CartService {
    * HE-HU4-004: Agregar producto al carrito
    */
   async addItem(userId: string, dto: AddCartItemDto): Promise<Cart> {
+    if (
+      dto.quantity === null ||
+      dto.quantity === undefined ||
+      typeof dto.quantity === 'boolean' ||
+      !Number.isInteger(Number(dto.quantity)) ||
+      Number(dto.quantity) <= 0
+    ) {
+      throw new BadRequestException(
+        'La cantidad debe ser un número entero positivo mayor a cero (no se permiten cantidades negativas, cero o decimales).',
+      );
+    }
+
     const menuItem = this.db.menuItems.get(dto.menuItemId);
     if (!menuItem) {
       throw new NotFoundException(`El producto con ID "${dto.menuItemId}" no existe`);
@@ -177,13 +189,25 @@ export class CartService {
     }
 
     if (dto.quantity !== undefined) {
-      if (dto.quantity === 0) {
+      const qty = Number(dto.quantity);
+      if (
+        dto.quantity === null ||
+        typeof dto.quantity === 'boolean' ||
+        isNaN(qty) ||
+        !Number.isInteger(qty) ||
+        qty < 0
+      ) {
+        throw new BadRequestException(
+          'La cantidad debe ser un entero no negativo (no se permiten números negativos ni decimales).',
+        );
+      }
+      if (qty === 0) {
         // Eliminar ítem si la cantidad es 0
         cart.items.splice(itemIndex, 1);
       } else {
-        cart.items[itemIndex].quantity = dto.quantity;
+        cart.items[itemIndex].quantity = qty;
         cart.items[itemIndex].lineTotal =
-          dto.quantity * cart.items[itemIndex].price;
+          Math.round(qty * cart.items[itemIndex].price * 100) / 100;
       }
     }
 

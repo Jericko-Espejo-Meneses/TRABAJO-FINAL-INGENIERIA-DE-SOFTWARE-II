@@ -1,6 +1,6 @@
 import { CartItem } from '../../cart/entities/cart-item.entity';
-import { Donation } from '../../donations/entities/donation.entity';
 import { NutritionalInfo } from '../../menus/entities/menu-item.entity';
+import { Donation } from '../../donations/entities/donation.entity';
 
 export enum OrderStatus {
   PENDING_PAYMENT = 'PENDING_PAYMENT',
@@ -46,6 +46,8 @@ export class Order {
   subtotal: number;
   deliveryFee: number;
   total: number;
+  donationAmount?: number;
+  donationPercentage?: number;
   totalNutrition: NutritionalInfo;
   deliveryAddress: DeliveryAddress;
   contactPhone: string;

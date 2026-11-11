@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, Optional } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MenuItem, NutritionalInfo } from './entities/menu-item.entity';
@@ -41,7 +41,7 @@ export class MenusService {
 
   constructor(
     private readonly db: DatabaseService,
-    private readonly prisma: PrismaService,
+    @Optional() private readonly prisma?: PrismaService,
   ) {}
 
   private safeJsonParse<T>(value: any, fallback: T): T {
@@ -119,7 +119,7 @@ export class MenusService {
   }
 
   async findAll(): Promise<MenuItem[]> {
-    if (this.prisma.connected) {
+    if (this.prisma?.connected) {
       try {
         const rows = await this.prisma.menuItem.findMany({
           include: { nutritionalInfo: true, restaurant: true },
@@ -141,7 +141,7 @@ export class MenusService {
   }
 
   async findByRestaurant(restaurantId: string): Promise<MenuItem[]> {
-    if (this.prisma.connected) {
+    if (this.prisma?.connected) {
       try {
         const rows = await this.prisma.menuItem.findMany({
           where: { restaurantId },
@@ -171,7 +171,7 @@ export class MenusService {
       return item;
     }
 
-    if (this.prisma.connected) {
+    if (this.prisma?.connected) {
       try {
         const row = await this.prisma.menuItem.findUnique({
           where: { id },
@@ -237,7 +237,7 @@ export class MenusService {
    * Listar todos los alérgenos identificados en el catálogo de platos
    */
   async getAllergensList(): Promise<{ allergens: string[] }> {
-    if (this.prisma.connected) {
+    if (this.prisma?.connected) {
       try {
         const rows = await this.prisma.menuItem.findMany({
           select: { allergens: true },

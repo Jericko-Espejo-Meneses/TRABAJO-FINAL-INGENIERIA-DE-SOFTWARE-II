@@ -10,6 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Order, OrderStatus, OrderTracking } from './entities/order.entity';
 import { CheckoutOrderDto } from './dto/checkout-order.dto';
 import { CartService } from '../cart/cart.service';
+import { CartItem } from '../cart/entities/cart-item.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { DonationsService } from '../donations/donations.service';
 
@@ -244,17 +245,80 @@ export class OrdersService implements OnModuleInit {
 
   /**
    * HE-HU8-008: Confirmar pedido a partir del carrito
+   * Valida rigurosamente: rechaza carritos vacíos, productos inexistentes, cantidades negativas, cero o decimales.
+   * Recalcula precios, subtotales, totales y donación del 3% en backend sin confiar en frontend.
    */
   async checkoutFromCart(userId: string, dto: CheckoutOrderDto): Promise<Order> {
     const cart = await this.cartService.getCart(userId);
 
-    if (!cart.items || cart.items.length === 0) {
+    if (!cart.items || !Array.isArray(cart.items) || cart.items.length === 0) {
       throw new BadRequestException('El carrito está vacío. Agregue productos antes de confirmar el pedido.');
     }
 
     if (!cart.restaurantId) {
       throw new BadRequestException('El carrito no tiene un restaurante asociado válido.');
     }
+
+    // Validar productos existentes, cantidades válidas y recalcular precios oficiales desde el backend
+    let subtotal = 0;
+    const validatedItems: CartItem[] = [];
+
+    for (let i = 0; i < cart.items.length; i++) {
+      const item = cart.items[i];
+      if (!item || !item.menuItemId) {
+        throw new BadRequestException(`El producto en la posición ${i + 1} del carrito no tiene un identificador válido.`);
+      }
+
+      let menuItem = this.db.menuItems.get(item.menuItemId.trim());
+      if (!menuItem && this.prisma?.connected) {
+        try {
+          menuItem = (await this.prisma.menuItem.findUnique({ where: { id: item.menuItemId.trim() } })) as any;
+        } catch {}
+      }
+
+      if (!menuItem) {
+        throw new BadRequestException(`El producto con ID "${item.menuItemId}" no existe en el catálogo.`);
+      }
+
+      if (menuItem.isAvailable === false) {
+        throw new BadRequestException(`El producto "${menuItem.name}" no está disponible en este momento.`);
+      }
+
+      const qty = Number(item.quantity);
+      if (
+        item.quantity === null ||
+        item.quantity === undefined ||
+        typeof item.quantity === 'boolean' ||
+        isNaN(qty) ||
+        !Number.isInteger(qty) ||
+        qty <= 0
+      ) {
+        throw new BadRequestException(
+          `La cantidad para el producto "${menuItem.name}" debe ser un número entero positivo mayor a cero (no se permiten cantidades negativas, cero o decimales).`,
+        );
+      }
+
+      // Precios oficiales calculados en backend (no se confía en importes previos)
+      const officialPrice = Number(menuItem.price);
+      const lineTotal = Math.round(officialPrice * qty * 100) / 100;
+      subtotal += lineTotal;
+
+      validatedItems.push({
+        ...item,
+        name: menuItem.name,
+        price: officialPrice,
+        unitPrice: officialPrice,
+        quantity: qty,
+        lineTotal,
+        nutritionalInfo: menuItem.nutritionalInfo || item.nutritionalInfo,
+      });
+    }
+
+    subtotal = Math.round(subtotal * 100) / 100;
+    const rest = this.db.restaurants.get(cart.restaurantId);
+    const deliveryFee = rest?.deliveryFee !== undefined ? Number(rest.deliveryFee) : 4.5;
+    const total = Math.round((subtotal + deliveryFee) * 100) / 100;
+    const donationAmount = Math.round(total * 0.03 * 100) / 100;
 
     const orderId = `order-${Date.now().toString().slice(-6)}`;
 
@@ -309,12 +373,19 @@ export class OrdersService implements OnModuleInit {
       id: orderId,
       userId,
       restaurantId: cart.restaurantId,
-      restaurantName: cart.restaurantName || 'Restaurante HealthExpress',
-      items: [...cart.items],
-      subtotal: cart.subtotal,
-      deliveryFee: cart.deliveryFee,
-      total: cart.total,
-      totalNutrition: { ...cart.totalNutrition },
+      restaurantName: cart.restaurantName || rest?.name || 'Restaurante HealthExpress',
+      items: validatedItems,
+      subtotal,
+      deliveryFee,
+      total,
+      donationAmount,
+      donationPercentage: 3,
+      totalNutrition: {
+        calories: Math.round(validatedItems.reduce((sum, it) => sum + (it.nutritionalInfo?.calories || 0) * it.quantity, 0)),
+        proteinGrams: Math.round(validatedItems.reduce((sum, it) => sum + (it.nutritionalInfo?.proteinGrams || 0) * it.quantity, 0) * 10) / 10,
+        carbsGrams: Math.round(validatedItems.reduce((sum, it) => sum + (it.nutritionalInfo?.carbsGrams || 0) * it.quantity, 0) * 10) / 10,
+        fatGrams: Math.round(validatedItems.reduce((sum, it) => sum + (it.nutritionalInfo?.fatGrams || 0) * it.quantity, 0) * 10) / 10,
+      },
       deliveryAddress: {
         street: dto.street,
         city: dto.city,
@@ -350,43 +421,103 @@ export class OrdersService implements OnModuleInit {
 
   /**
    * Conexión Frontend: Creación directa de orden con ítems, pago y donación automática (HE-HU8-008 & HE-HU9-009 & HE-HU5-005)
+   * Valida rigurosamente: rechaza carritos vacíos, productos inexistentes, cantidades negativas, cero o decimales.
+   * Calcula precios, total y donación del 3% exclusivamente en el backend sin confiar en el frontend.
    */
   async createDirectOrder(userId: string, data: any): Promise<Order> {
-    const restaurantId = data.restaurantId || data.idRestaurante || 'rest-1';
-    const rest = this.db.restaurants.get(restaurantId);
-    const restaurantName = rest?.name || data.restaurantName || 'GreenBowl Healthy Bar';
+    const rawItems = data?.items || data?.productos;
+    if (!rawItems || !Array.isArray(rawItems) || rawItems.length === 0) {
+      throw new BadRequestException('El pedido debe contener al menos un producto (carrito vacío no permitido).');
+    }
 
-    const rawItems = data.items || data.productos || [];
-    const items = rawItems.map((it: any) => {
-      const menuItemId = it.menuItemId || it.dishId || it.idProducto || 'menu-1';
-      const menuItem = this.db.menuItems.get(menuItemId);
-      const name = it.name || it.nombre || menuItem?.name || 'Plato Saludable';
-      const price = Number(it.unitPrice || it.precio || it.price || menuItem?.price || 25);
-      const quantity = Number(it.quantity || it.cantidad || 1);
-      return {
+    const items: CartItem[] = [];
+
+    for (let i = 0; i < rawItems.length; i++) {
+      const it = rawItems[i];
+      if (!it || typeof it !== 'object') {
+        throw new BadRequestException(`El producto en la posición ${i + 1} no es válido.`);
+      }
+
+      const menuItemId = it.menuItemId || it.dishId || it.idProducto || it.id;
+      if (!menuItemId || typeof menuItemId !== 'string' || !menuItemId.trim()) {
+        throw new BadRequestException(`El producto en la posición ${i + 1} debe contener un identificador válido (menuItemId).`);
+      }
+
+      const trimmedId = menuItemId.trim();
+      let menuItem = this.db.menuItems.get(trimmedId);
+      if (!menuItem && this.prisma?.connected) {
+        try {
+          menuItem = (await this.prisma.menuItem.findUnique({ where: { id: trimmedId } })) as any;
+        } catch {}
+      }
+
+      if (!menuItem) {
+        throw new BadRequestException(`El producto con ID "${trimmedId}" no existe en el catálogo.`);
+      }
+
+      if (menuItem.isAvailable === false) {
+        throw new BadRequestException(`El producto "${menuItem.name}" no está disponible en este momento.`);
+      }
+
+      const rawQty = it.quantity !== undefined ? it.quantity : it.cantidad;
+      if (
+        rawQty === null ||
+        rawQty === undefined ||
+        typeof rawQty === 'boolean' ||
+        rawQty === ''
+      ) {
+        throw new BadRequestException(
+          `La cantidad del producto "${menuItem.name}" es requerida y debe ser un número entero mayor a cero.`,
+        );
+      }
+
+      const quantityNum = Number(rawQty);
+      if (isNaN(quantityNum) || !Number.isInteger(quantityNum) || quantityNum <= 0) {
+        throw new BadRequestException(
+          `La cantidad del producto "${menuItem.name}" debe ser un número entero positivo mayor a cero (no se permiten cantidades negativas, cero o decimales). Valor recibido: ${rawQty}`,
+        );
+      }
+
+      // PRECIOS: Se obtienen exclusivamente del catálogo oficial en el backend
+      // Se ignora cualquier precio o importe enviado por el frontend
+      const officialPrice = Number(menuItem.price);
+      const lineTotal = Math.round(officialPrice * quantityNum * 100) / 100;
+
+      items.push({
         id: `item-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 6)}`,
-        menuItemId,
-        name,
-        price,
-        unitPrice: price,
-        quantity,
-        imageUrl: menuItem?.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
-        restaurantId,
-        restaurantName,
-        nutritionalInfo: menuItem?.nutritionalInfo || { calories: 350, proteinGrams: 25, carbsGrams: 30, fatGrams: 10 },
-        lineTotal: price * quantity,
-      };
-    });
+        menuItemId: menuItem.id,
+        name: menuItem.name,
+        price: officialPrice,
+        unitPrice: officialPrice,
+        quantity: quantityNum,
+        imageUrl: menuItem.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500',
+        restaurantId: menuItem.restaurantId,
+        restaurantName: menuItem.restaurantName,
+        specialInstructions: it.specialInstructions || it.instrucciones,
+        nutritionalInfo: menuItem.nutritionalInfo || { calories: 350, proteinGrams: 25, carbsGrams: 30, fatGrams: 10, fiberGrams: 5 },
+        lineTotal,
+      });
+    }
 
-    const subtotal = data.subtotal ? Number(data.subtotal) : items.reduce((sum: number, it: any) => sum + it.lineTotal, 0);
-    const deliveryFee = rest?.deliveryFee || 4.5;
-    const total = data.total ? Number(data.total) : subtotal + deliveryFee;
+    const restaurantId = data?.restaurantId || data?.idRestaurante || items[0].restaurantId || 'rest-1';
+    let rest = this.db.restaurants.get(restaurantId);
+    if (!rest && this.prisma?.connected) {
+      try {
+        rest = (await this.prisma.restaurant.findUnique({ where: { id: restaurantId } })) as any;
+      } catch {}
+    }
+    const restaurantName = rest?.name || data?.restaurantName || items[0].restaurantName || 'GreenBowl Healthy Bar';
+
+    // CÁLCULOS ESTRICTOS EN EL BACKEND (se ignoran data.subtotal, data.total y data.deliveryFee)
+    const subtotal = Math.round(items.reduce((sum: number, it: any) => sum + it.lineTotal, 0) * 100) / 100;
+    const deliveryFee = rest?.deliveryFee !== undefined ? Number(rest.deliveryFee) : 4.5;
+    const total = Math.round((subtotal + deliveryFee) * 100) / 100;
 
     const orderId = `HE-${Date.now().toString().slice(-6)}`;
 
-    const deliveryAddressStr = typeof data.deliveryAddress === 'string'
+    const deliveryAddressStr = typeof data?.deliveryAddress === 'string'
       ? data.deliveryAddress
-      : data.direccionEntrega || data.deliveryAddress?.street || 'Av. Principal 123';
+      : data?.direccionEntrega || data?.deliveryAddress?.street || 'Av. Principal 123';
 
     const order: Order = {
       id: orderId,
@@ -397,17 +528,18 @@ export class OrdersService implements OnModuleInit {
       subtotal,
       deliveryFee,
       total,
+      donationPercentage: 3,
       totalNutrition: {
-        calories: items.reduce((sum: number, it: any) => sum + (it.nutritionalInfo.calories || 0) * it.quantity, 0),
-        proteinGrams: items.reduce((sum: number, it: any) => sum + (it.nutritionalInfo.proteinGrams || 0) * it.quantity, 0),
-        carbsGrams: items.reduce((sum: number, it: any) => sum + (it.nutritionalInfo.carbsGrams || 0) * it.quantity, 0),
-        fatGrams: items.reduce((sum: number, it: any) => sum + (it.nutritionalInfo.fatGrams || 0) * it.quantity, 0),
+        calories: Math.round(items.reduce((sum: number, it: any) => sum + (it.nutritionalInfo?.calories || 0) * it.quantity, 0)),
+        proteinGrams: Math.round(items.reduce((sum: number, it: any) => sum + (it.nutritionalInfo?.proteinGrams || 0) * it.quantity, 0) * 10) / 10,
+        carbsGrams: Math.round(items.reduce((sum: number, it: any) => sum + (it.nutritionalInfo?.carbsGrams || 0) * it.quantity, 0) * 10) / 10,
+        fatGrams: Math.round(items.reduce((sum: number, it: any) => sum + (it.nutritionalInfo?.fatGrams || 0) * it.quantity, 0) * 10) / 10,
       },
       deliveryAddress: {
         street: deliveryAddressStr,
         city: 'Lima',
       },
-      contactPhone: data.contactPhone || '+51987654321',
+      contactPhone: data?.contactPhone || data?.telefonoContacto || '+51987654321',
       status: OrderStatus.CONFIRMED,
       tracking: {
         currentStatus: OrderStatus.CONFIRMED,
@@ -452,15 +584,17 @@ export class OrdersService implements OnModuleInit {
       updatedAt: new Date(),
     };
 
+    // Donación automática vinculada (HE-HU5-005): 3 % calculado estrictamente en el backend
+    const preferredFoundationId = data?.preferredFoundationId || data?.idFundacion;
+    const donation = await this.donationsService.processAutomaticDonation(order, preferredFoundationId);
+    order.donationId = donation.id;
+    order.donationAmount = donation.donationAmount;
+    order.donation = donation;
+
     this.db.orders.set(order.id, order);
 
     // Persistir en PostgreSQL
     await this.persistOrderToPrisma(order);
-
-    // Donación automática vinculada (HE-HU5-005)
-    const donation = await this.donationsService.processAutomaticDonation(order);
-    order.donationId = donation.id;
-    order.donation = donation;
 
     // Crear notificación (HE-HU7-007)
     await this.notificationsService.createNotification(

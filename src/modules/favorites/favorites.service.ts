@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -24,14 +25,14 @@ export class FavoritesService {
 
   constructor(
     private readonly db: DatabaseService,
-    private readonly prisma: PrismaService,
+    @Optional() private readonly prisma?: PrismaService,
   ) {}
 
   /**
    * HE-HU12-012: Listar todos los favoritos (restaurantes y menús) del usuario
    */
   async getUserFavorites(userId: string): Promise<UserFavoritesResponse> {
-    if (this.prisma.connected) {
+    if (this.prisma?.connected) {
       try {
         const rows = await this.prisma.favorite.findMany({
           where: { userId },
@@ -122,7 +123,7 @@ export class FavoritesService {
   ): Promise<{ isFavorite: boolean; message: string }> {
     let existing = false;
 
-    if (this.prisma.connected) {
+    if (this.prisma?.connected) {
       try {
         const fav = await this.prisma.favorite.findFirst({
           where: {
@@ -177,7 +178,7 @@ export class FavoritesService {
 
     if (type === 'RESTAURANT') {
       rest = this.db.restaurants.get(targetId);
-      if (!rest && this.prisma.connected) {
+      if (!rest && this.prisma?.connected) {
         try {
           const dbRest = await this.prisma.restaurant.findUnique({
             where: { id: targetId },
@@ -199,7 +200,7 @@ export class FavoritesService {
       }
     } else {
       menu = this.db.menuItems.get(targetId);
-      if (!menu && this.prisma.connected) {
+      if (!menu && this.prisma?.connected) {
         try {
           const dbMenu = await this.prisma.menuItem.findUnique({
             where: { id: targetId },
@@ -224,7 +225,7 @@ export class FavoritesService {
 
     const existing = this.findUserFavorite(userId, type, targetId);
     if (existing) {
-      if (this.prisma.connected) {
+      if (this.prisma?.connected) {
         try {
           await this.prisma.favorite.upsert({
             where: { id: existing.id },
@@ -246,7 +247,7 @@ export class FavoritesService {
       return existing; // Ya está en favoritos
     }
 
-    if (this.prisma.connected) {
+    if (this.prisma?.connected) {
       try {
         const existingDb = await this.prisma.favorite.findFirst({
           where: {
@@ -288,7 +289,7 @@ export class FavoritesService {
 
     this.db.favorites.set(favorite.id, favorite);
 
-    if (this.prisma.connected) {
+    if (this.prisma?.connected) {
       try {
         await this.prisma.favorite.create({
           data: {
@@ -320,7 +321,7 @@ export class FavoritesService {
     const existingInMemory = this.findUserFavorite(userId, type, targetId);
     let deletedInPrisma = false;
 
-    if (this.prisma.connected) {
+    if (this.prisma?.connected) {
       try {
         const deleteResult = await this.prisma.favorite.deleteMany({
           where: {
@@ -367,7 +368,7 @@ export class FavoritesService {
     type: FavoriteType,
     targetId: string,
   ): Promise<{ isFavorite: boolean }> {
-    if (this.prisma.connected) {
+    if (this.prisma?.connected) {
       try {
         const found = await this.prisma.favorite.findFirst({
           where: {

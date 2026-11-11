@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartService } from './cart.service';
 import { DatabaseService } from '../../database/database.service';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('CartService (Sprint 3: HE-HU4-004)', () => {
   let service: CartService;
@@ -88,5 +88,49 @@ describe('CartService (Sprint 3: HE-HU4-004)', () => {
         quantity: 1,
       }),
     ).rejects.toThrow(NotFoundException);
+  });
+  it('debe rechazar cantidades menores o iguales a cero al agregar', async () => {
+    await expect(
+      service.addItem('test-user-qty-1', {
+        menuItemId: 'menu-1',
+        quantity: 0,
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    await expect(
+      service.addItem('test-user-qty-2', {
+        menuItemId: 'menu-1',
+        quantity: -2,
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('debe rechazar cantidades decimales al agregar', async () => {
+    await expect(
+      service.addItem('test-user-qty-3', {
+        menuItemId: 'menu-1',
+        quantity: 1.5,
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('debe rechazar cantidades negativas o decimales al actualizar', async () => {
+    const initialCart = await service.addItem('test-user-qty-4', {
+      menuItemId: 'menu-1',
+      quantity: 1,
+    });
+    const itemId = initialCart.items[0].id;
+
+    await expect(
+      service.updateItem('test-user-qty-4', itemId, {
+        quantity: -1,
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    await expect(
+      service.updateItem('test-user-qty-4', itemId, {
+        quantity: 2.3,
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 });
