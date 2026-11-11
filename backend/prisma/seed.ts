@@ -78,6 +78,9 @@ async function main() {
       dietaryTags: JSON.stringify(['vegano', 'vegetariano', 'sin gluten', 'bajo en calorias', 'organico']),
       foodType: 'Bowls & Ensaladas',
       address: 'Av. Primavera 450, Santiago de Surco',
+      // Coordenadas aproximadas de demostración; reemplazar por geocodificación real en producción.
+      latitude: -12.1070,
+      longitude: -76.9930,
       phone: '+51 1 456-7890',
     },
     {
@@ -95,6 +98,8 @@ async function main() {
       dietaryTags: JSON.stringify(['keto', 'alto en proteina', 'sin gluten', 'fitness']),
       foodType: 'Keto & Fitness',
       address: 'Calle Los Pinos 182, Miraflores',
+      latitude: -12.1180,
+      longitude: -77.0305,
       phone: '+51 1 332-1144',
     },
     {
@@ -112,6 +117,8 @@ async function main() {
       dietaryTags: JSON.stringify(['vegano', 'organico', 'vegetariano', 'detox', 'sin lactosa']),
       foodType: 'Comida Vegana',
       address: 'Av. Larco 810, Miraflores',
+      latitude: -12.1270,
+      longitude: -77.0295,
       phone: '+51 1 224-5588',
     },
     {
@@ -129,6 +136,8 @@ async function main() {
       dietaryTags: JSON.stringify(['detox', 'sin gluten', 'organico', 'bajo en calorias', 'vegano']),
       foodType: 'Smoothies & Detox',
       address: 'Av. Conquistadores 740, San Isidro',
+      latitude: -12.0970,
+      longitude: -77.0370,
       phone: '+51 1 556-9922',
     },
   ];

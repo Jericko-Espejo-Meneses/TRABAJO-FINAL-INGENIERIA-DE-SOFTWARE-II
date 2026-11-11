@@ -16,6 +16,46 @@ completas (S/ 2.50 por ración), de acuerdo con el campo entero del esquema.
 Esta integración registra donaciones en la aplicación; no ejecuta transferencias
 de dinero a WFP. El modo simulado del frontend tampoco llama al backend.
 
+## Arranque local con Docker Desktop (Windows / PowerShell)
+
+Desde la carpeta `backend` del repositorio:
+
+```powershell
+docker compose up -d postgres
+$env:DATABASE_URL = 'postgresql://postgres:Password123!@localhost:5432/healthexpress?schema=public'
+$env:DIRECT_URL = $env:DATABASE_URL
+npm run prisma:generate
+npm run prisma:push
+```
+
+Para una base recién creada, poblarla una sola vez con datos demo:
+
+```powershell
+npm run prisma:seed
+```
+
+**El semillero elimina los datos existentes antes de recrear los demos.** No lo
+ejecutes para corregir las distancias de una base que ya contiene datos.
+Para actualizar únicamente las coordenadas demo sin borrar usuarios/pedidos:
+
+```powershell
+docker compose cp .\prisma\repair-demo-restaurant-coordinates.sql postgres:/tmp/repair-demo-restaurant-coordinates.sql
+docker compose exec postgres psql -U postgres -d healthexpress -f /tmp/repair-demo-restaurant-coordinates.sql
+```
+
+Luego inicia o reconstruye el backend:
+
+```powershell
+docker compose up -d --build backend
+docker compose ps
+```
+
+La API debe responder en `http://localhost:3000/api/v1`; Swagger está en
+`http://localhost:3000/api/docs`. En otra terminal, ve a `frontend`, confirma
+en `.env` `VITE_USE_MOCK=false` y `VITE_API_URL=http://localhost:3000/api`, y
+ejecuta `npm run dev`. Vite lee `.env`, no `.env.example`; si cambias `.env`,
+detén la terminal con `Ctrl+C` y vuelve a iniciar Vite.
+
 Plataforma backend completa desarrollada con **NestJS** y **TypeScript** para **HealthExpress**, basada en el 100% del Product Road Map oficial (Sprints 1 al 8).
 
 ---

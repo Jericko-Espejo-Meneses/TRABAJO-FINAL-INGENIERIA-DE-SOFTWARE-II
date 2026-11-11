@@ -14,4 +14,11 @@ describe('Catálogo del backend real', () => {
       foodType: 'Ensaladas', distanceKm: 0, tags: ['vegan'], priceLevel: 2,
     });
   });
+
+  it('usa el banner o logo que entrega Prisma como imagen del restaurante', () => {
+    expect(toRestaurant({ id: 'r1', bannerUrl: 'https://example.test/banner.jpg', logoUrl: 'https://example.test/logo.jpg' }).imageUrl)
+      .toBe('https://example.test/banner.jpg');
+    expect(toRestaurant({ id: 'r2', logoUrl: 'https://example.test/logo.jpg' }).imageUrl)
+      .toBe('https://example.test/logo.jpg');
+  });
 });

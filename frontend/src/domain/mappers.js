@@ -38,7 +38,7 @@ export const toRestaurant = (d) => ({
   priceLevel: ({ '$': 1, '$$': 2, '$$$': 3 })[d.nivelPrecio ?? d.priceLevel] ?? d.nivelPrecio ?? d.priceLevel ?? 2,
   tags: d.etiquetas ?? d.tags ?? d.dietaryTags ?? [],
   emoji: d.emoji ?? '🍽️',
-  imageUrl: d.imagenUrl ?? d.imageUrl ?? null,
+  imageUrl: d.imagenUrl ?? d.imageUrl ?? d.bannerUrl ?? d.logoUrl ?? null,
 });
 
 export const toOrder = (d) => ({
