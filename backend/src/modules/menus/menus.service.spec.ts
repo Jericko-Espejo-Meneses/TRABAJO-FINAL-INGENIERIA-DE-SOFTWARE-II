@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MenusService } from './menus.service';
 import { DatabaseService } from '../../database/database.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('MenusService (Sprint 8: HE-HU14-014)', () => {
@@ -9,7 +10,12 @@ describe('MenusService (Sprint 8: HE-HU14-014)', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MenusService, DatabaseService],
+      providers: [
+        MenusService,
+        DatabaseService,
+        // Estos casos ejercitan los datos de prueba en memoria.
+        { provide: PrismaService, useValue: { connected: false } },
+      ],
     }).compile();
 
     service = module.get<MenusService>(MenusService);

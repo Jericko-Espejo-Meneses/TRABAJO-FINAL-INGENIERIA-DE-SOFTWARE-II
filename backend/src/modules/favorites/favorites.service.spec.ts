@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FavoritesService } from './favorites.service';
 import { DatabaseService } from '../../database/database.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('FavoritesService (Sprint 8: HE-HU12-012)', () => {
@@ -9,7 +10,12 @@ describe('FavoritesService (Sprint 8: HE-HU12-012)', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [FavoritesService, DatabaseService],
+      providers: [
+        FavoritesService,
+        DatabaseService,
+        // Estos casos ejercitan los datos de prueba en memoria.
+        { provide: PrismaService, useValue: { connected: false } },
+      ],
     }).compile();
 
     service = module.get<FavoritesService>(FavoritesService);
