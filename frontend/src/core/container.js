@@ -16,8 +16,7 @@ import { MockOrderService } from '../services/mock/MockOrderService';
 import { MockDonationService } from '../services/mock/MockDonationService';
 import { MockProfileService } from '../services/mock/MockProfileService';
 
-// PATRÓN FACTORY: único lugar donde se decide qué implementación se usa.
-// Cambiar VITE_USE_MOCK=false conecta toda la app al backend sin tocar componentes.
+// PATRON FACTORY: unico lugar donde se decide que implementacion se usa.
 export function createServices(cfg = config) {
   const tokenStorage = new TokenStorage();
   let services;
@@ -53,6 +52,6 @@ export function createServices(cfg = config) {
   return services;
 }
 
-// PATRÓN SINGLETON: una sola instancia de servicios para toda la aplicación.
+// PATRoN SINGLETON: una sola instancia de servicios para toda la aplicacion.
 let instance;
 export const getServices = () => (instance ??= createServices());
