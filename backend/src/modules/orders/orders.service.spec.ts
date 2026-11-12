@@ -31,6 +31,7 @@ describe('OrdersService (Sprint 4: HE-HU8-008 & Sprint 5: HE-HU6-006 & Sprint 7:
             orderTracking: { update: jest.fn() },
             user: { findUnique: jest.fn(), create: jest.fn() },
             restaurant: { findUnique: jest.fn(), create: jest.fn() },
+            menuItem: { findUnique: jest.fn() },
           },
         },
       ],
@@ -137,6 +138,21 @@ describe('OrdersService (Sprint 4: HE-HU8-008 & Sprint 5: HE-HU6-006 & Sprint 7:
       restaurantId: 'rest-1',
       items: [{ menuItemId: 'menu-1', quantity: 1 }],
     })).rejects.toThrow('Stock insuficiente');
+  });
+
+  it('usa el stock real de PostgreSQL al crear pedido desde frontend', async () => {
+    prisma.connected = true;
+    prisma.menuItem.findUnique.mockResolvedValue({ stock: 0, isAvailable: true });
+
+    await expect(service.createDirectOrder('db-no-stock-user', {
+      restaurantId: 'rest-1',
+      items: [{ menuItemId: 'menu-1', quantity: 1 }],
+    })).rejects.toThrow('Stock insuficiente');
+
+    expect(prisma.menuItem.findUnique).toHaveBeenCalledWith({
+      where: { id: 'menu-1' },
+      select: { stock: true, isAvailable: true },
+    });
   });
 
   it('recupera la donación persistida con su beneficiario histórico', async () => {

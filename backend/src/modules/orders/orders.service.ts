@@ -25,6 +25,18 @@ export class OrdersService implements OnModuleInit {
     private readonly donationsService: DonationsService,
   ) {}
 
+  private async getMenuItemStock(menuItemId: string) {
+    if (this.prisma.connected) {
+      // PostgreSQL is authoritative when connected; the in-memory fixture can be stale.
+      return this.prisma.menuItem.findUnique({
+        where: { id: menuItemId },
+        select: { stock: true, isAvailable: true },
+      });
+    }
+    const menuItem = this.db.menuItems.get(menuItemId);
+    return menuItem ? { stock: menuItem.stock ?? 50, isAvailable: menuItem.isAvailable } : null;
+  }
+
   async onModuleInit() {
     await this.syncOrdersFromDatabase();
   }
@@ -257,9 +269,9 @@ export class OrdersService implements OnModuleInit {
     }
 
     for (const item of cart.items) {
-      const menuItem = this.db.menuItems.get(item.menuItemId);
-      const availableStock = menuItem?.stock ?? 50;
-      if (!menuItem || !menuItem.isAvailable || item.quantity > availableStock) {
+      const stockItem = await this.getMenuItemStock(item.menuItemId);
+      const availableStock = stockItem?.stock ?? 0;
+      if (!stockItem || !stockItem.isAvailable || item.quantity > availableStock) {
         throw new BadRequestException(`Stock insuficiente o producto no disponible: "${item.name}".`);
       }
     }
@@ -371,7 +383,7 @@ export class OrdersService implements OnModuleInit {
     if (!Array.isArray(rawItems) || rawItems.length === 0) {
       throw new BadRequestException('El pedido debe incluir al menos un producto.');
     }
-    const items = rawItems.map((it: any) => {
+    const items = await Promise.all(rawItems.map(async (it: any) => {
       const menuItemId = it.menuItemId || it.dishId || it.idProducto || 'menu-1';
       const menuItem = this.db.menuItems.get(menuItemId);
       if (!menuItem || menuItem.restaurantId !== restaurantId) {
@@ -383,7 +395,8 @@ export class OrdersService implements OnModuleInit {
       if (!Number.isInteger(quantity) || quantity < 1) {
         throw new BadRequestException(`La cantidad de "${name}" debe ser un entero mayor que cero.`);
       }
-      if (!menuItem.isAvailable || quantity > (menuItem.stock ?? 50)) {
+      const stockItem = await this.getMenuItemStock(menuItemId);
+      if (!stockItem || !stockItem.isAvailable || quantity > (stockItem.stock ?? 0)) {
         throw new BadRequestException(`Stock insuficiente o producto no disponible: "${name}".`);
       }
       return {
@@ -399,7 +412,7 @@ export class OrdersService implements OnModuleInit {
         nutritionalInfo: menuItem?.nutritionalInfo || { calories: 350, proteinGrams: 25, carbsGrams: 30, fatGrams: 10 },
         lineTotal: price * quantity,
       };
-    });
+    }));
 
     const subtotal = data.subtotal ? Number(data.subtotal) : items.reduce((sum: number, it: any) => sum + it.lineTotal, 0);
     const deliveryFee = rest?.deliveryFee || 4.5;
