@@ -1,4 +1,4 @@
-import { CardPayment, PayPalPayment, WalletPayment } from './strategies';
+import { CardPayment, CashPayment, WalletPayment } from './strategies';
 
 // PATRÓN FACTORY (registro): crea/entrega la estrategia según el id.
 // Para un método nuevo: crear la clase y registrarla aquí (Open/Closed).
@@ -18,4 +18,4 @@ PaymentStrategyFactory
   .register(new CardPayment())
   .register(new WalletPayment('yape', 'Yape', '📱'))
   .register(new WalletPayment('plin', 'Plin', '📲'))
-  .register(new PayPalPayment());
+  .register(new CashPayment());

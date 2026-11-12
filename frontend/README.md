@@ -21,8 +21,12 @@ disponible, sin inventar un monto o beneficiario. El resumen acumula todas las
 donaciones, incluidas las históricas a otras fundaciones.
 
 ## Conectar con el backend
-1. En `.env` pon `VITE_USE_MOCK=false` y `VITE_API_URL=<url de tu API>`.
-2. Reinicia `npm run dev`. No hay que tocar ningún componente.
+1. En la carpeta `frontend`, copia `.env.example` como `.env` (PowerShell: `Copy-Item .env.example .env`). Vite no lee `.env.example` automáticamente.
+2. Confirma que `.env` tenga `VITE_USE_MOCK=false` y `VITE_API_URL=http://localhost:3000/api`.
+3. Detén el frontend con `Ctrl+C` en su terminal y vuelve a iniciarlo con `npm run dev`.
+4. El catálogo de PostgreSQL usa restaurantes demo del semillero; que sean demo no significa que la aplicación esté usando el mock del frontend.
+
+El checkout HTTP crea el pedido en estado pendiente y luego llama a `POST /payments/process`. En el simulador, una tarjeta terminada en `0000` o un código de billetera `000000` produce un rechazo; puedes reintentar el mismo pedido con datos válidos. El frontend solo envía los últimos cuatro dígitos de la tarjeta, nunca el número completo.
 
 | Servicio | Endpoint esperado |
 |---|---|
@@ -33,7 +37,7 @@ donaciones, incluidas las históricas a otras fundaciones.
 | Detalle + menú | `GET /restaurantes/{id}` → incluye `productos[]` |
 | Recomendaciones | `GET /recomendaciones`, `GET/PUT /usuarios/me/preferencias` |
 | Editar perfil | `PUT /usuarios/me` con `{ nombre, direccion, biografia }` → usuario actualizado |
-| Pedido | `POST /pedidos` (incluye `montoDonacion`), `GET /pedidos` |
+| Pedido | `POST /pedidos` crea un pedido pendiente, `POST /payments/process` lo confirma tras aprobar el pago, `GET /pedidos` |
 | Donaciones | `GET /donaciones/resumen` → `{ total, cantidad }` |
 
 Los nombres de campos (idUsuario, correo, idProducto, tipoComida…) siguen el diagrama de clases y

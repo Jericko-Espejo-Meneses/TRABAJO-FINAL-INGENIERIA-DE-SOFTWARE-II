@@ -12,8 +12,8 @@ export class Restaurant {
   category: string;
   dietaryTags: string[];
   address: string;
-  latitude?: number;
-  longitude?: number;
+  latitude?: number | null;
+  longitude?: number | null;
   distanceKm?: number | null;
   phone: string;
   isHealthyCertified: boolean;

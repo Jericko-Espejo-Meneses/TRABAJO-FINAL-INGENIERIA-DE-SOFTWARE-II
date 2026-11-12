@@ -12,16 +12,16 @@ export class RegisterDto {
   @IsEmail({}, { message: 'El correo no tiene un formato válido' })
   correo?: string;
 
-  @ApiPropertyOptional({ example: 'Password123!', description: 'Contraseña segura (mínimo 6 caracteres)' })
+  @ApiPropertyOptional({ example: 'Password123!', description: 'Contraseña segura (mínimo 8 caracteres)' })
   @IsOptional()
   @IsString()
-  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   password?: string;
 
-  @ApiPropertyOptional({ example: 'Password123!', description: 'Alias en español' })
+  @ApiPropertyOptional({ example: 'Password123!', description: 'Alias en español; mínimo 8 caracteres' })
   @IsOptional()
   @IsString()
-  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   contrasena?: string;
 
   @ApiPropertyOptional({ example: 'Juan Pérez', description: 'Nombre completo del usuario' })

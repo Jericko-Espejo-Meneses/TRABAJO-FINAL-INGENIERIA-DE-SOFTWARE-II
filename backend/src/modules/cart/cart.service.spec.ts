@@ -89,4 +89,14 @@ describe('CartService (Sprint 3: HE-HU4-004)', () => {
       }),
     ).rejects.toThrow(NotFoundException);
   });
+
+  it('no permite agregar ni aumentar una cantidad superior al stock disponible', async () => {
+    db.menuItems.get('menu-1')!.stock = 1;
+    await expect(service.addItem('stock-user', { menuItemId: 'menu-1', quantity: 2 }))
+      .rejects.toThrow('Stock insuficiente');
+
+    const cart = await service.addItem('stock-user', { menuItemId: 'menu-1', quantity: 1 });
+    await expect(service.updateItem('stock-user', cart.items[0].id, { quantity: 2 }))
+      .rejects.toThrow('Stock insuficiente');
+  });
 });

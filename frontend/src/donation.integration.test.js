@@ -8,11 +8,25 @@ describe('Donación registrada por el backend', () => {
       id: 'don-1', donationAmount: 1.5, percentage: 3,
       foundationName: 'World Food Programme (WFP)',
     } };
-    const http = { post: vi.fn().mockResolvedValue(record), get: vi.fn().mockResolvedValue([record]) };
+    const http = {
+      post: vi.fn()
+        .mockResolvedValueOnce(record)
+        .mockResolvedValueOnce({
+          order: { status: 'CONFIRMED' },
+          payment: { paymentMethod: 'yape' },
+          donation: record.donation,
+        }),
+      get: vi.fn().mockResolvedValue([record]),
+    };
     const service = new HttpOrderService(http);
     const order = await service.create({ items: [], total: 50, payment: { method: 'yape', details: {} } });
     expect(order).toMatchObject({ total: 50, donation: 1.5, donationPercentage: 3, donationFoundation: 'World Food Programme (WFP)' });
-    expect((await service.list())[0]).toEqual(order);
+    expect((await service.list())[0]).toMatchObject({
+      total: order.total,
+      donation: order.donation,
+      donationPercentage: order.donationPercentage,
+      donationFoundation: order.donationFoundation,
+    });
   });
 
   it('no inventa monto ni beneficiario si solo llega el identificador', () => {

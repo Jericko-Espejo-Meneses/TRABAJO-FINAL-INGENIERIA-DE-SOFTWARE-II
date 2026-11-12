@@ -25,6 +25,18 @@ export class OrdersService implements OnModuleInit {
     private readonly donationsService: DonationsService,
   ) {}
 
+  private async getMenuItemStock(menuItemId: string) {
+    if (this.prisma.connected) {
+      // PostgreSQL is authoritative when connected; the in-memory fixture can be stale.
+      return this.prisma.menuItem.findUnique({
+        where: { id: menuItemId },
+        select: { stock: true, isAvailable: true },
+      });
+    }
+    const menuItem = this.db.menuItems.get(menuItemId);
+    return menuItem ? { stock: menuItem.stock ?? 50, isAvailable: menuItem.isAvailable } : null;
+  }
+
   async onModuleInit() {
     await this.syncOrdersFromDatabase();
   }
@@ -256,6 +268,14 @@ export class OrdersService implements OnModuleInit {
       throw new BadRequestException('El carrito no tiene un restaurante asociado válido.');
     }
 
+    for (const item of cart.items) {
+      const stockItem = await this.getMenuItemStock(item.menuItemId);
+      const availableStock = stockItem?.stock ?? 0;
+      if (!stockItem || !stockItem.isAvailable || item.quantity > availableStock) {
+        throw new BadRequestException(`Stock insuficiente o producto no disponible: "${item.name}".`);
+      }
+    }
+
     const orderId = `order-${Date.now().toString().slice(-6)}`;
 
     const initialTracking: OrderTracking = {
@@ -354,15 +374,42 @@ export class OrdersService implements OnModuleInit {
   async createDirectOrder(userId: string, data: any): Promise<Order> {
     const restaurantId = data.restaurantId || data.idRestaurante || 'rest-1';
     const rest = this.db.restaurants.get(restaurantId);
+    if (!rest) {
+      throw new NotFoundException(`Restaurante con ID "${restaurantId}" no encontrado`);
+    }
     const restaurantName = rest?.name || data.restaurantName || 'GreenBowl Healthy Bar';
 
     const rawItems = data.items || data.productos || [];
-    const items = rawItems.map((it: any) => {
+    if (!Array.isArray(rawItems) || rawItems.length === 0) {
+      throw new BadRequestException('El pedido debe incluir al menos un producto.');
+    }
+    const items = await Promise.all(rawItems.map(async (it: any) => {
       const menuItemId = it.menuItemId || it.dishId || it.idProducto || 'menu-1';
-      const menuItem = this.db.menuItems.get(menuItemId);
-      const name = it.name || it.nombre || menuItem?.name || 'Plato Saludable';
-      const price = Number(it.unitPrice || it.precio || it.price || menuItem?.price || 25);
-      const quantity = Number(it.quantity || it.cantidad || 1);
+      // PostgreSQL is the source of truth when connected. The in-memory demo
+      // catalog intentionally differs from some seeded DB rows; using it here
+      // can reject a valid DB product or persist an ID that has no FK target.
+      let menuItem: any;
+      if (this.prisma.connected) {
+        menuItem = await this.prisma.menuItem.findUnique({
+          where: { id: menuItemId },
+          include: { nutritionalInfo: true },
+        });
+      } else {
+        menuItem = this.db.menuItems.get(menuItemId);
+      }
+      if (!menuItem || menuItem.restaurantId !== restaurantId) {
+        throw new NotFoundException(`Producto "${menuItemId}" no disponible en el restaurante seleccionado`);
+      }
+      const name = menuItem.name;
+      const price = menuItem.price;
+      const quantity = Number(it.quantity ?? it.cantidad ?? 1);
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        throw new BadRequestException(`La cantidad de "${name}" debe ser un entero mayor que cero.`);
+      }
+      const stockItem = await this.getMenuItemStock(menuItemId);
+      if (!stockItem || !stockItem.isAvailable || quantity > (stockItem.stock ?? 0)) {
+        throw new BadRequestException(`Stock insuficiente o producto no disponible: "${name}".`);
+      }
       return {
         id: `item-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 6)}`,
         menuItemId,
@@ -376,7 +423,7 @@ export class OrdersService implements OnModuleInit {
         nutritionalInfo: menuItem?.nutritionalInfo || { calories: 350, proteinGrams: 25, carbsGrams: 30, fatGrams: 10 },
         lineTotal: price * quantity,
       };
-    });
+    }));
 
     const subtotal = data.subtotal ? Number(data.subtotal) : items.reduce((sum: number, it: any) => sum + it.lineTotal, 0);
     const deliveryFee = rest?.deliveryFee || 4.5;
@@ -408,10 +455,10 @@ export class OrdersService implements OnModuleInit {
         city: 'Lima',
       },
       contactPhone: data.contactPhone || '+51987654321',
-      status: OrderStatus.CONFIRMED,
+      status: OrderStatus.PENDING_PAYMENT,
       tracking: {
-        currentStatus: OrderStatus.CONFIRMED,
-        progressPercentage: 30,
+        currentStatus: OrderStatus.PENDING_PAYMENT,
+        progressPercentage: 15,
         estimatedDeliveryTimeMinutes: 30,
         driverName: 'Jorge Ramírez',
         driverPhone: '+51 981 123 456',
@@ -419,11 +466,11 @@ export class OrdersService implements OnModuleInit {
         currentCoordinates: { lat: -12.112, lng: -76.994 },
         timeline: [
           {
-            status: OrderStatus.CONFIRMED,
-            label: 'Pedido confirmado',
+            status: OrderStatus.PENDING_PAYMENT,
+            label: 'Pendiente de pago',
             timestamp: new Date(),
             completed: true,
-            description: 'El restaurante ha recibido y confirmado tu pedido.',
+            description: 'El pedido se creó y espera la confirmación del pago.',
           },
           {
             status: OrderStatus.PREPARING,
@@ -457,16 +504,11 @@ export class OrdersService implements OnModuleInit {
     // Persistir en PostgreSQL
     await this.persistOrderToPrisma(order);
 
-    // Donación automática vinculada (HE-HU5-005)
-    const donation = await this.donationsService.processAutomaticDonation(order);
-    order.donationId = donation.id;
-    order.donation = donation;
-
-    // Crear notificación (HE-HU7-007)
+    // La confirmación y donación ocurren solo cuando PaymentsService aprueba el pago.
     await this.notificationsService.createNotification(
       userId,
-      `🎉 ¡Pedido #${order.id} confirmado!`,
-      `Tu pedido en ${order.restaurantName} ha sido confirmado. Se donaron S/ ${donation.donationAmount.toFixed(2)} a ${donation.foundationName}.`,
+      `🛒 Pedido #${order.id} pendiente de pago`,
+      `Tu pedido en ${order.restaurantName} está listo para procesar el pago.`,
       'ORDER_UPDATE',
       { orderId: order.id },
     );

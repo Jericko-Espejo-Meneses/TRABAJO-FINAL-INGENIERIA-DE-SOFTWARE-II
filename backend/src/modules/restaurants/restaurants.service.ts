@@ -94,6 +94,7 @@ export class RestaurantsService {
       detailedDescription: dbm.description,
       price: dbm.price,
       imageUrl: dbm.imageUrl,
+      stock: dbm.stock ?? 50,
       category: dbm.category,
       portionSizeGrams: 350,
       ingredients: Array.isArray(ingredients) ? ingredients : [],

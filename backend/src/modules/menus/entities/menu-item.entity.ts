@@ -20,6 +20,7 @@ export class MenuItem {
   description: string;
   detailedDescription?: string;
   price: number;
+  stock?: number;
   imageUrl: string;
   category: string;
   portionSizeGrams?: number;
