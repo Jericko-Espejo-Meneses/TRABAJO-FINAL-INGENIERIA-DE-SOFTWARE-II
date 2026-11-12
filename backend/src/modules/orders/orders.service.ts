@@ -385,7 +385,18 @@ export class OrdersService implements OnModuleInit {
     }
     const items = await Promise.all(rawItems.map(async (it: any) => {
       const menuItemId = it.menuItemId || it.dishId || it.idProducto || 'menu-1';
-      const menuItem = this.db.menuItems.get(menuItemId);
+      // PostgreSQL is the source of truth when connected. The in-memory demo
+      // catalog intentionally differs from some seeded DB rows; using it here
+      // can reject a valid DB product or persist an ID that has no FK target.
+      let menuItem: any;
+      if (this.prisma.connected) {
+        menuItem = await this.prisma.menuItem.findUnique({
+          where: { id: menuItemId },
+          include: { nutritionalInfo: true },
+        });
+      } else {
+        menuItem = this.db.menuItems.get(menuItemId);
+      }
       if (!menuItem || menuItem.restaurantId !== restaurantId) {
         throw new NotFoundException(`Producto "${menuItemId}" no disponible en el restaurante seleccionado`);
       }
