@@ -104,17 +104,25 @@ export class PaymentsService {
 
     // Validación simulada según el método de pago seleccionado
     if (['credit_card', 'debit_card'].includes(dto.paymentMethod)) {
-      if (!dto.cardNumber || dto.cardNumber.length < 13) {
+      const validCardNumber = dto.cardNumber && dto.cardNumber.length >= 13;
+      const validLastFour = dto.cardLast4 && /^\d{4}$/.test(dto.cardLast4);
+      if (!validCardNumber && !validLastFour) {
         throw new BadRequestException('Número de tarjeta no válido');
+      }
+      if (dto.cardLast4 === '0000' || dto.cardNumber?.endsWith('0000')) {
+        throw new BadRequestException('Pago rechazado por el simulador. Verifica los datos e inténtalo nuevamente.');
       }
     } else if (['yape', 'plin'].includes(dto.paymentMethod)) {
       if (!dto.walletPhone || dto.walletPhone.length < 9) {
         throw new BadRequestException('Número de billetera digital no válido');
       }
+      if (dto.walletOtpCode === '000000') {
+        throw new BadRequestException('Pago rechazado por el simulador. Verifica el código e inténtalo nuevamente.');
+      }
     }
 
     const paymentId = `pay-${uuidv4().substring(0, 8)}`;
-    const cardLast4 = dto.cardNumber ? dto.cardNumber.slice(-4) : undefined;
+    const cardLast4 = dto.cardLast4 || (dto.cardNumber ? dto.cardNumber.slice(-4) : undefined);
     const receiptNumber = `REC-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
 
     const payment: Payment = {

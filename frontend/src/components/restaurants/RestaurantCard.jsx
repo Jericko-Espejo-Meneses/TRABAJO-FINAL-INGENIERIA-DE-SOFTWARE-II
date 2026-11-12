@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import TagList from '../ui/TagList';
+import ImageCover from '../ui/ImageCover';
 
 export default function RestaurantCard({ restaurant: r }) {
   return (
     <Link to={`/restaurants/${r.id}`} className="card card--link">
-      <div className="card__cover" aria-hidden="true">{r.emoji}</div>
+      <ImageCover className="card__cover" src={r.imageUrl} alt={`Imagen de ${r.name}`} fallback={r.emoji} />
       <div className="card__body">
         <div className="row row--between">
           <h3>{r.name}</h3>

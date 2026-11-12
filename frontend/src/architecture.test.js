@@ -45,6 +45,7 @@ describe('Pruebas Unitarias de Arquitectura y Patrones (Frontend)', () => {
     });
     expect(payload.details.ultimos4).toBe('4242');
     expect(payload.details.token).toBeNull();
+    expect(PaymentStrategyFactory.list().map((method) => method.id)).toEqual(['card', 'yape', 'plin', 'cash']);
   });
 
   it('Patrón Builder + Facade (CheckoutFacade): coordina validación, armado de pedido y cálculo de donación', async () => {

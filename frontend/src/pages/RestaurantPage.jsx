@@ -7,6 +7,7 @@ import { useServices } from '../context/ServicesContext';
 import { useAddToCart } from '../hooks/useAddToCart';
 import { useAsync } from '../hooks/useAsync';
 import { useGeolocation } from '../hooks/useGeolocation';
+import ImageCover from '../components/ui/ImageCover';
 
 const TABS = ['Información', 'Menú'];
 
@@ -24,7 +25,7 @@ export default function RestaurantPage() {
         <>
           <Link to="/home" className="link">← Volver al inicio</Link>
           <div className="hero-card">
-            <div className="hero-card__cover" aria-hidden="true">{data.restaurant.emoji}</div>
+            <ImageCover className="hero-card__cover" src={data.restaurant.imageUrl} alt={`Imagen de ${data.restaurant.name}`} fallback={data.restaurant.emoji} />
             <h1>{data.restaurant.name}</h1>
             <p className="muted">⭐ {data.restaurant.rating} · {data.restaurant.foodType}</p>
           </div>

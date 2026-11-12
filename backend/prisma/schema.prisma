@@ -61,8 +61,9 @@ model Restaurant {
   logoUrl             String
   bannerUrl           String
   address             String
-  latitude            Float      @default(-12.097)
-  longitude           Float      @default(-77.034)
+  // Sin coordenadas conocidas no se calcula distancia; los datos demo las declaran explícitamente.
+  latitude            Float?
+  longitude           Float?
   phone               String     @default("+51 1 456-7890")
   rating              Float      @default(4.8)
   totalReviews        Int        @default(0)

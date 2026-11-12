@@ -6,6 +6,8 @@ import { DatabaseService } from '../../database/database.service';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { validate } from 'class-validator';
+import { RegisterDto } from './dto/register.dto';
 
 describe('AuthService (Sprint 1: HE-HU1-001 & HE-HU10-010)', () => {
   let authService: AuthService;
@@ -39,6 +41,12 @@ describe('AuthService (Sprint 1: HE-HU1-001 & HE-HU10-010)', () => {
   });
 
   describe('HE-HU1-001: Registro con correo y contraseña', () => {
+    it('rechaza contraseñas menores de ocho caracteres, igual que el frontend', async () => {
+      const dto = Object.assign(new RegisterDto(), { email: 'qa@example.com', password: '1234567' });
+      const errors = await validate(dto);
+      expect(errors.some((error) => error.property === 'password')).toBe(true);
+    });
+
     it('debe registrar un nuevo usuario exitosamente con hash y token', async () => {
       const result = await authService.register({
         email: 'nuevo.usuario@test.com',

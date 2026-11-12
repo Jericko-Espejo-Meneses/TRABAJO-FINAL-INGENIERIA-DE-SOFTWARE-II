@@ -40,6 +40,14 @@ describe('RestaurantsService (Sprint 2: HE-HU2-002)', () => {
     });
   });
 
+  it('calcula distancias distintas para las ubicaciones demo del catálogo', async () => {
+    const results = await service.search({ lat: -12.1211, lng: -77.0297 });
+    const distances = results.map((restaurant) => restaurant.distanceKm);
+    expect(results).toHaveLength(4);
+    expect(distances.every((distance) => typeof distance === 'number')).toBe(true);
+    expect(new Set(distances).size).toBeGreaterThan(1);
+  });
+
   it('debe recuperar el detalle de un restaurante con su catálogo de menú', async () => {
     const restaurant = await service.findById('rest-1');
     expect(restaurant).toBeDefined();
