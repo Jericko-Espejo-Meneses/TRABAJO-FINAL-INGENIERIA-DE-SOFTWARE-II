@@ -15,9 +15,7 @@ lerna-debug.log*
 Thumbs.db
 
 # Environment variables & secrets (keep outside GitHub)
-.env
-.env.*
-!.env.example
+
 
 # IDE files
 .idea/
