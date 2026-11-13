@@ -22,7 +22,7 @@ donaciones, incluidas las históricas a otras fundaciones.
 
 ## Conectar con el backend
 1. En la carpeta `frontend`, copia `.env.example` como `.env` (PowerShell: `Copy-Item .env.example .env`). Vite no lee `.env.example` automáticamente.
-2. Confirma que `.env` tenga `VITE_USE_MOCK=false` y `VITE_API_URL=http://localhost:3000/api`.
+2. Confirma que `.env` tenga `VITE_USE_MOCK=false` y `VITE_API_URL=https://ingsoft-backend-1.onrender.com/api`.
 3. Detén el frontend con `Ctrl+C` en su terminal y vuelve a iniciarlo con `npm run dev`.
 4. El catálogo de PostgreSQL usa restaurantes demo del semillero; que sean demo no significa que la aplicación esté usando el mock del frontend.
 

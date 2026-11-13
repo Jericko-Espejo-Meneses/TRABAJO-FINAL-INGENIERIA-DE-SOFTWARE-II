@@ -74,7 +74,7 @@ describe('Pruebas Unitarias de Arquitectura y Patrones (Frontend)', () => {
 
   it('Patrón Decorator (AuthHttpClient): inyecta token Bearer y dispara evento en 401', async () => {
     const inner = {
-      baseUrl: 'http://localhost:3000/api',
+      baseUrl: 'https://ingsoft-backend-1.onrender.com/api',
       request: vi.fn(async () => ({ ok: true })),
     };
     const tokenStorage = { get: () => 'jwt-demo-token' };
