@@ -126,7 +126,7 @@ Para generar la compilación del frontend o del backend, ejecuta `npm run build`
 
 | Integrante | Rol principal |
 |---|---|
-| Jericko Marcelo Espejo Meneses | Scrum Master y colaborador del frontend del Release 2 |
+| Jericko Marcelo Espejo Meneses | Scrum Master |
 | Rolando Gustavo Deudor Fernández | Product Owner |
 | Fabrizzio Jhosue Gavilán Calderón | Líder técnico |
 | Rodrigo Alessandro Sandoval Benites | Frontend |
