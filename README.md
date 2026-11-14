@@ -136,3 +136,7 @@ Para generar la compilación del frontend o del backend, ejecuta `npm run build`
 | Víctor Alejandro Mendoza Domínguez | Aseguramiento de la calidad (QA) |
 
 Las contribuciones de código se pueden consultar en el [historial de `main`](https://github.com/Jericko-Espejo-Meneses/TRABAJO-FINAL-INGENIERIA-DE-SOFTWARE-II/commits/main/). Las actividades de coordinación, diseño y validación también están documentadas en el informe final del proyecto.
+
+## Administración del catálogo
+
+[Historias, configuración y prueba de aceptación](docs/catalogo-admin.md)

@@ -6,6 +6,7 @@ import { UsersService } from '../../users/users.service';
 
 export interface JwtPayload {
   sub: string;
+  catalogPasswordLogin?: boolean;
   email: string;
   provider: string;
 }
@@ -28,6 +29,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException('El token no corresponde a un usuario activo');
     }
-    return this.usersService.sanitize(user);
+    return { ...this.usersService.sanitize(user), catalogPasswordLogin: payload.catalogPasswordLogin === true };
   }
 }

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
+import AdminCatalogPage from './pages/AdminCatalogPage';
 import SplashPage from './pages/SplashPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/confirmation/:orderId" element={<ConfirmationPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/admin/catalogo" element={<AdminCatalogPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>

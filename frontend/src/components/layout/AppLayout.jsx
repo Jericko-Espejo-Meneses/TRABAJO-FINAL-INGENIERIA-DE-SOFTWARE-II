@@ -1,8 +1,14 @@
+import { useAsync } from '../../hooks/useAsync';
+import { useServices } from '../../context/ServicesContext';
+import { useAuth } from '../../context/AuthContext';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useCart } from '../../cart/CartContext';
 import { formatMoney } from '../../utils/format';
 
 export default function AppLayout() {
+  const { catalogAdmin } = useServices();
+  const { user } = useAuth();
+  const { data: access } = useAsync(async () => catalogAdmin?.get('/admin/catalog/access'), [catalogAdmin, user?.id]);
   const { itemCount, subtotal } = useCart();
 
   return (
@@ -13,6 +19,7 @@ export default function AppLayout() {
         <nav className="navbar__links" aria-label="Navegación principal">
           <NavLink to="/home">Inicio</NavLink>
           <NavLink to="/recommendations">Para ti</NavLink>
+          {(access?.canRegister || access?.restaurants?.length > 0) && <NavLink to="/admin/catalogo">{access.canRegister ? 'Administrar catálogo' : 'Mi restaurante'}</NavLink>}
           <NavLink to="/orders">Mis pedidos</NavLink>
           <button type="button" className="navbar__bell" data-tip="Próximamente" aria-label="Notificaciones (próximamente)">🔔</button>
         </nav>

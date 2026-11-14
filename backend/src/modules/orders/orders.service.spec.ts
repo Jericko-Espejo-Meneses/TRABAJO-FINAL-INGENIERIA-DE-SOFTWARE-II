@@ -142,7 +142,9 @@ describe('OrdersService (Sprint 4: HE-HU8-008 & Sprint 5: HE-HU6-006 & Sprint 7:
 
   it('usa el stock real de PostgreSQL al crear pedido desde frontend', async () => {
     prisma.connected = true;
-    prisma.menuItem.findUnique.mockResolvedValue({ stock: 0, isAvailable: true });
+    prisma.menuItem.findUnique
+      .mockResolvedValueOnce({ id: 'menu-1', restaurantId: 'rest-1', name: 'Bowl', price: 12, stock: 0, isAvailable: true })
+      .mockResolvedValueOnce({ stock: 0, isAvailable: true });
 
     await expect(service.createDirectOrder('db-no-stock-user', {
       restaurantId: 'rest-1',
