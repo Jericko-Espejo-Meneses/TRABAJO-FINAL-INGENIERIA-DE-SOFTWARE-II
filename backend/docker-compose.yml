@@ -40,7 +40,8 @@ services:
       JWT_SECRET: healthexpress-super-secure-jwt-secret-key-2026
       JWT_EXPIRATION: 7d
       CORS_ORIGIN: http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000
-      DATABASE_URL: postgresql://postgres:Password123!@postgres:5432/healthexpress?schema=public
+      DATABASE_URL: ${DATABASE_URL} 
+      DIRECT_URL : ${DIRECT_URL} 
     depends_on:
       postgres:
         condition: service_healthy
