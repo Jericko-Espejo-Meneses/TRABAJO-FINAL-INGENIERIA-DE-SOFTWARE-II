@@ -23,6 +23,7 @@ model User {
   avatarUrl          String?
   dietaryPreferences String            @default("[]") // JSON string
   healthGoals        String            @default("[]") // JSON string
+  managedRestaurants Restaurant[] @relation("CatalogOwner")
   addresses          Address[]
   orders             Order[]
   donations          Donation[]
@@ -74,12 +75,15 @@ model Restaurant {
   dietaryTags         String     @default("[]") // JSON string
   foodType            String     @default("Saludable")
   isActive            Boolean    @default(true)
+  ownerId             String?
+  owner               User? @relation("CatalogOwner", fields: [ownerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   menuItems           MenuItem[]
   orders              Order[]
   favorites           Favorite[]
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
+  @@index([ownerId])
   @@map("restaurants")
 }
 

@@ -38,6 +38,7 @@ export function createServices(cfg = config) {
       () => window.dispatchEvent(new Event('he:unauthorized')),
     );
     services = {
+      catalogAdmin: http,
       auth: new HttpAuthService(http),
       restaurants: new HttpRestaurantService(http),
       recommendations: new HttpRecommendationService(http),

@@ -19,6 +19,7 @@ export const toDish = (d) => ({
   price: Number(d.precio ?? d.price),
   category: d.categoria ?? d.category ?? '',
   stock: d.stock ?? null,
+  isAvailable: d.isAvailable ?? true,
   calories: d.calorias ?? d.calories ?? null,
   tags: d.etiquetas ?? d.tags ?? [],
   emoji: d.emoji ?? '🥗',

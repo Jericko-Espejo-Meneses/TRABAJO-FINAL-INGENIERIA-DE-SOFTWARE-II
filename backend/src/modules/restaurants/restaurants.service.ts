@@ -263,8 +263,8 @@ export class RestaurantsService {
       );
     }
 
-    // Si no está en memoria y Prisma está conectado, buscar en PostgreSQL con menú incluido
-    if (!restaurant && this.prisma?.connected) {
+    // Consultar el menú persistido para incluir altas posteriores a la carga en memoria.
+    if (this.prisma?.connected) {
       try {
         const dbRestaurant = await this.prisma.restaurant.findUnique({
           where: { id },

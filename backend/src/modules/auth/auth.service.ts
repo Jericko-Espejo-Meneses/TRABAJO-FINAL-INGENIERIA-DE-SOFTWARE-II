@@ -98,7 +98,7 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas (correo o contraseña incorrectos)');
     }
 
-    return this.generateAuthResponse(user);
+    return this.generateAuthResponse(user, true);
   }
 
   /**
@@ -135,9 +135,10 @@ export class AuthService {
     return this.generateAuthResponse(user);
   }
 
-  private generateAuthResponse(user: User): AuthResponse {
+  private generateAuthResponse(user: User, catalogPasswordLogin = false): AuthResponse {
     const payload = {
       sub: user.id,
+      catalogPasswordLogin,
       email: user.email,
       provider: user.provider,
     };

@@ -1,3 +1,4 @@
+import { CatalogAdminController } from './modules/catalog-admin/catalog-admin.controller';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
@@ -17,6 +18,7 @@ import { FavoritesModule } from './modules/favorites/favorites.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
+  controllers: [CatalogAdminController],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
